@@ -1,0 +1,19 @@
+# 本機開發用 PostgreSQL（拋棄式，可隨意 reset）
+# 啟動：docker-compose up -d
+# 連線字串對應 apps/api/.env 的 DATABASE_URL
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: travel-app-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: travel
+      POSTGRES_PASSWORD: travel_dev_password
+      POSTGRES_DB: travel_app
+    ports:
+      - "5432:5432"
+    volumes:
+      - travel-pgdata:/var/lib/postgresql/data
+
+volumes:
+  travel-pgdata:

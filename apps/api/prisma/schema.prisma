@@ -1,0 +1,165 @@
+// Prisma Schema — Travel App 後端資料模型
+// 命名規範：資料表 PascalCase、欄位 camelCase、關聯欄位 = 對應表名 + Id
+// 修改後必跑：npx prisma migrate dev --name "說明" && npx prisma generate
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 家庭成員角色
+enum FamilyRole {
+  OWNER // 建立者
+  ADMIN // 管理員
+  MEMBER // 一般成員
+}
+
+// 使用者
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String // 認證用（密碼雜湊後存放，搭配 JWT）
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  familyMembers FamilyMember[]
+}
+
+// 家庭群組
+model Family {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members FamilyMember[]
+  trips   Trip[]
+}
+
+// 使用者與家庭的多對多關聯（join table）
+model FamilyMember {
+  id       String     @id @default(cuid())
+  userId   String
+  familyId String
+  role     FamilyRole @default(MEMBER)
+  joinedAt DateTime   @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, familyId]) // 同一人在同一家庭只會有一筆
+}
+
+// 行程
+model Trip {
+  id        String   @id @default(cuid())
+  title     String
+  startDate DateTime
+  endDate   DateTime
+  familyId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  family          Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  tripAttractions TripAttraction[]
+  tripDays        TripDay[]
+  hotels          Hotel[]
+  flights         Flight[]
+}
+
+// 景點（可被多個行程共用，資料可來自 Google Places）
+model Attraction {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  lat       Float?
+  lng       Float?
+  placeId   String?  @unique // Google Places place_id
+  category  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tripAttractions TripAttraction[]
+  dayActivities   DayActivity[]
+}
+
+// 行程與景點的多對多關聯（join table）
+model TripAttraction {
+  id           String   @id @default(cuid())
+  tripId       String
+  attractionId String
+  order        Int      @default(0) // 在行程中的排序
+  note         String?
+  createdAt    DateTime @default(now())
+
+  trip       Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  attraction Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, attractionId])
+}
+
+// 行程中的某一天
+model TripDay {
+  id        String   @id @default(cuid())
+  tripId    String
+  date      DateTime
+  dayNumber Int // 第幾天（1, 2, 3...）
+  createdAt DateTime @default(now())
+
+  trip       Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  activities DayActivity[]
+
+  @@unique([tripId, dayNumber])
+}
+
+// 每日活動
+model DayActivity {
+  id           String    @id @default(cuid())
+  tripDayId    String
+  title        String
+  startTime    DateTime?
+  endTime      DateTime?
+  attractionId String? // 可選：關聯到某景點
+  note         String?
+  order        Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  tripDay    TripDay     @relation(fields: [tripDayId], references: [id], onDelete: Cascade)
+  attraction Attraction? @relation(fields: [attractionId], references: [id], onDelete: SetNull)
+}
+
+// 飯店
+model Hotel {
+  id         String   @id @default(cuid())
+  tripId     String
+  name       String
+  address    String?
+  lat        Float?
+  lng        Float?
+  checkIn    DateTime
+  checkOut   DateTime
+  bookingRef String? // 訂房代號
+  createdAt  DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+// 航班
+model Flight {
+  id               String   @id @default(cuid())
+  tripId           String
+  flightNumber     String
+  airline          String?
+  departureAirport String // IATA 代碼，如 TPE
+  arrivalAirport   String // 如 NRT
+  departureTime    DateTime
+  arrivalTime      DateTime
+  createdAt        DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}

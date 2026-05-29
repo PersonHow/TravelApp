@@ -1,0 +1,21 @@
+# 依賴
+node_modules/
+
+# 環境變數（絕不 commit，只 commit .env.example）
+.env
+.env.local
+**/.env
+!**/.env.example
+
+# 建置產物
+dist/
+build/
+.expo/
+web-build/
+
+# 系統 / 編輯器
+.DS_Store
+*.log
+npm-debug.log*
+
+# Prisma：migrations 要 commit，generated client 不用
