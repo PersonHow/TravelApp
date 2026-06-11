@@ -25,6 +25,7 @@ export const familyController = {
     const member = await familyService.addMember({
       familyId: req.params.id,
       userId,
+      requesterId: req.userId!,
     })
     res.status(201).json({ success: true, data: member })
   },

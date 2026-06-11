@@ -62,6 +62,10 @@ model Trip {
   startDate DateTime
   endDate   DateTime
   familyId  String
+  // 幣別與匯率(設計檔顯示「¥600 ≈ NT$126」需要這兩個欄位)
+  currency  String?  // ISO 4217 例如 "JPY"、"KRW"
+  symbol    String?  // 顯示符號 例如 "¥"、"₩"
+  fx        Float?   // 1 currency ≈ X TWD,手動填(之後可接匯率 API)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -109,6 +113,7 @@ model TripDay {
   tripId    String
   date      DateTime
   dayNumber Int // 第幾天（1, 2, 3...）
+  theme     String? // 該日主題,例如 "淺草・上野"（給設計檔的 column header）
   createdAt DateTime @default(now())
 
   trip       Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
@@ -127,6 +132,11 @@ model DayActivity {
   attractionId String? // 可選：關聯到某景點
   note         String?
   order        Int       @default(0)
+  // 設計檔顯示需要的欄位
+  type         String? // "spot" | "food" | "shop" | "move" — 類別,影響顏色徽章
+  place        String? // 地點/區域,例如 "台東区浅草"（短字串,跟 Attraction 的詳細地址不同）
+  hours        String? // 營業時間區間,自由字串例如 "06:00–17:00"
+  price        Int? // 票價/消費,單位看所屬 Trip.currency（整數,0 = 免費）
   createdAt    DateTime  @default(now())
 
   tripDay    TripDay     @relation(fields: [tripDayId], references: [id], onDelete: Cascade)

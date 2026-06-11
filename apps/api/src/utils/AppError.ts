@@ -21,4 +21,9 @@ export class AppError extends Error {
   static unauthorized(message = '未授權') {
     return new AppError(401, 'UNAUTHORIZED', message)
   }
+
+  // 已登入但無權限存取該資源（與 401 區分：401 是「沒登入」，403 是「不是你的」）
+  static forbidden(message = '無權存取此資源') {
+    return new AppError(403, 'FORBIDDEN', message)
+  }
 }

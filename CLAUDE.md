@@ -284,7 +284,8 @@ GET    /health                 # 健康檢查（Cloud Run 探活用）
 | code | HTTP | 意義 |
 |------|------|------|
 | `BAD_REQUEST` | 400 | 必填欄位缺漏／格式錯誤 |
-| `UNAUTHORIZED` | 401 | 缺 token、token 無效或過期 |
+| `UNAUTHORIZED` | 401 | 缺 token、token 無效或過期（沒登入）|
+| `FORBIDDEN` | 403 | 已登入但無權存取該資源（非所屬家庭成員）|
 | `NOT_FOUND` | 404 | 找不到資源／路由 |
 | `EMAIL_TAKEN` | 409 | 註冊 email 重複 |
 | `INTEGRATION_NOT_CONFIGURED` | 503 | 第三方 API 金鑰未設定 |
@@ -311,6 +312,13 @@ route → controller → service → prisma
 - **controller**：解析 req、驗證必填欄位、呼叫 service、回傳統一格式，**不直接碰 Prisma**
 - **service**：商業邏輯與**所有** DB 存取都集中於此
 - 新增資源照此模板：`services/xxxService.ts` → `controllers/xxxController.ts` → `routes/xxx.ts` → 在 `routes/index.ts` 掛載
+
+### 授權（authorization）規範
+- `requireAuth` 只做**認證**（你是誰），不做授權（你能不能動這筆）
+- 凡是隸屬家庭的資源（trips 等），controller 把 `req.userId` 傳進 service，由 service 做成員身分檢查
+- 共用檢查：`familyService.assertMember(userId, familyId)` — 非成員一律 `403 FORBIDDEN`
+- 以 trip 為單位的存取用 `tripService.assertAccess(tripId, userId)`：行程不存在回 `404`、存在但非所屬家庭成員回 `403`
+- 列表查詢不要回全表，要以「使用者所屬家庭」過濾（範例：`tripService.findAllForUser`）
 
 ### 錯誤處理
 - 一律 `throw new AppError(statusCode, code, message)`（或 `AppError.notFound()` 等快捷）
@@ -478,12 +486,13 @@ gcloud run deploy travel-frontend \
 - Prisma schema（全 10 model）+ 首次 migration（本機 Postgres via docker-compose）
 - 認證：register / login / refresh / me（JWT + bcrypt）
 - 行程 CRUD + 巢狀景點、家庭建立／成員、第三方搜尋串接結構（含無金鑰時回 503）
+- ✅ **家庭成員授權檢查**：trips 全端點（list/get/create/update/remove/景點）+ families 加成員，皆以「所屬家庭成員身分」控管（`familyService.assertMember` / `tripService.assertAccess`，非成員回 403）
 
 **待補（依優先序）**
-1. ⚠️ **家庭成員授權檢查**：目前任何登入者只要知道 `familyId` 就能在該家庭建行程（只擋 FK 是否存在，未擋成員身分）。authentication 已做、authorization 未做
-2. 第三方搜尋需填 `GOOGLE_PLACES_API_KEY` / `AVIATION_STACK_API_KEY` 才有真資料
-3. Hotel / TripDay / DayActivity 的獨立 REST 端點（model 已建）
-4. Socket.io 即時同步、Firebase 即時共享
+1. 第三方搜尋需填 `GOOGLE_PLACES_API_KEY` / `AVIATION_STACK_API_KEY` 才有真資料
+2. Hotel / TripDay / DayActivity 的獨立 REST 端點（model 已建）
+3. Socket.io 即時同步、Firebase 即時共享
+4. 角色細分授權（目前任何成員都能加成員；之後可限定 OWNER/ADMIN 才能邀請）
 5. 測試（`npm test`）與 Lint（`npm run lint`）工具尚未設定，根目錄 script 待補
 
 ---
@@ -499,4 +508,4 @@ gcloud run deploy travel-frontend \
 
 ---
 
-*最後更新：2026-05-29 後端骨架完成（auth / trips / families / 搜尋）| 如有架構變動請同步更新此文件*
+*最後更新：2026-05-29 補上家庭成員授權檢查（trips / families 以成員身分控管，非成員回 403）| 如有架構變動請同步更新此文件*
