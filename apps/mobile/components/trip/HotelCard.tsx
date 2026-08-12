@@ -32,7 +32,9 @@ export function HotelCard({ hotel, onPress }: HotelCardProps) {
 
       <View className="flex-row items-center gap-2.5 mt-3 bg-surface-2 dark:bg-dark-surface-2 rounded-[11px] p-3">
         <View className="flex-1">
-          <Text className="text-muted dark:text-dark-muted text-[10px] font-bold tracking-wide">CHECK-IN</Text>
+          <Text className="text-muted dark:text-dark-muted text-[10px] font-bold tracking-wide">
+            CHECK-IN
+          </Text>
           <Text className="text-ink dark:text-dark-ink text-[13px] font-bold mt-0.5">
             {formatDate(hotel.checkIn)}
           </Text>
@@ -42,7 +44,9 @@ export function HotelCard({ hotel, onPress }: HotelCardProps) {
         </View>
         <ArrowRight size={16} color="#8c89a8" />
         <View className="flex-1 items-end">
-          <Text className="text-muted dark:text-dark-muted text-[10px] font-bold tracking-wide">CHECK-OUT</Text>
+          <Text className="text-muted dark:text-dark-muted text-[10px] font-bold tracking-wide">
+            CHECK-OUT
+          </Text>
           <Text className="text-ink dark:text-dark-ink text-[13px] font-bold mt-0.5">
             {formatDate(hotel.checkOut)}
           </Text>

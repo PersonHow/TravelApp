@@ -5,9 +5,7 @@ import { flightSearchService } from '../services/flightSearchService'
 export const flightController = {
   // GET /api/flights/search?flightNumber=BR189
   async search(req: Request, res: Response) {
-    const flightNumber = req.query.flightNumber
-      ? String(req.query.flightNumber)
-      : undefined
+    const flightNumber = req.query.flightNumber ? String(req.query.flightNumber) : undefined
     const results = await flightSearchService.search({ flightNumber })
     res.json({ success: true, data: results })
   },

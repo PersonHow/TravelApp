@@ -1,42 +1,28 @@
 // 行程 tab:kanban 看板(每天一欄,卡片是活動)
 // 對應設計檔網頁版.html 的「行程」頁
-import { useEffect } from 'react'
-import { View, Text, ScrollView, ActivityIndicator, Pressable } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { Calendar, Plus } from 'lucide-react-native'
+import { useState } from 'react'
+import { View, Text, ScrollView, Pressable } from 'react-native'
+import { Plus } from 'lucide-react-native'
 import { useTripStore } from '@/store/useTripStore'
 import { useIsDesktop } from '@/hooks/useIsDesktop'
 import { ActivityCard } from '@/components/trip/ActivityCard'
+import { ActivityFormModal } from '@/components/trip/ActivityFormModal'
 import { formatDate } from '@/utils/format'
-import type { TripDay } from '@/types/api'
+import type { DayActivity, TripDay } from '@/types/api'
+
+// 彈窗狀態:新增(指定哪一天)或編輯(指定活動)
+type ModalState = { mode: 'create'; dayId: string } | { mode: 'edit'; activity: DayActivity } | null
 
 export default function ScheduleScreen() {
   const isDesktop = useIsDesktop()
-  const { currentTrip, loading, loadTrips } = useTripStore()
+  // currentTrip 由 trip/[id]/_layout 保證載入完成
+  const currentTrip = useTripStore((s) => s.currentTrip)
+  const [modal, setModal] = useState<ModalState>(null)
 
-  useEffect(() => {
-    if (!currentTrip) loadTrips()
-  }, [currentTrip, loadTrips])
-
-  if (loading && !currentTrip) {
-    return (
-      <SafeAreaView className="flex-1 bg-bg dark:bg-dark-bg items-center justify-center" edges={isDesktop ? [] : ['top']}>
-        <ActivityIndicator color="#6c7bd6" />
-      </SafeAreaView>
-    )
-  }
-
-  if (!currentTrip) {
-    return (
-      <SafeAreaView className="flex-1 bg-bg dark:bg-dark-bg items-center justify-center px-6" edges={isDesktop ? [] : ['top']}>
-        <Calendar size={42} color="#bdb2ff" />
-        <Text className="text-ink dark:text-dark-ink text-base font-bold mt-4">尚未選擇行程</Text>
-      </SafeAreaView>
-    )
-  }
+  if (!currentTrip) return null
 
   return (
-    <SafeAreaView className="flex-1 bg-bg dark:bg-dark-bg" edges={isDesktop ? [] : ['top']}>
+    <View className="flex-1 bg-bg dark:bg-dark-bg">
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: isDesktop ? 40 : 16,
@@ -53,7 +39,7 @@ export default function ScheduleScreen() {
           行程
         </Text>
         <Text className="text-muted dark:text-dark-muted text-[13px] mt-1">
-          每天一欄  ·  點任一景點看細節或編輯
+          每天一欄 · 點任一景點看細節或編輯
         </Text>
 
         {/* Kanban 看板:橫向滾動,每天一欄 */}
@@ -67,11 +53,21 @@ export default function ScheduleScreen() {
               key={day.id}
               day={day}
               currencySymbol={currentTrip.symbol}
+              onAdd={() => setModal({ mode: 'create', dayId: day.id })}
+              onPressActivity={(activity) => setModal({ mode: 'edit', activity })}
             />
           ))}
         </ScrollView>
       </ScrollView>
-    </SafeAreaView>
+
+      <ActivityFormModal
+        visible={modal !== null}
+        onClose={() => setModal(null)}
+        trip={currentTrip}
+        activity={modal?.mode === 'edit' ? modal.activity : null}
+        initialDayId={modal?.mode === 'create' ? modal.dayId : undefined}
+      />
+    </View>
   )
 }
 
@@ -79,9 +75,13 @@ export default function ScheduleScreen() {
 function DayColumn({
   day,
   currencySymbol,
+  onAdd,
+  onPressActivity,
 }: {
   day: TripDay
   currencySymbol: string | null
+  onAdd: () => void
+  onPressActivity: (activity: DayActivity) => void
 }) {
   return (
     <View className="w-[290px] bg-surface-2 dark:bg-dark-surface-2 border border-line dark:border-dark-line rounded-[18px] p-3.5">
@@ -93,7 +93,9 @@ function DayColumn({
         <Text className="text-ink dark:text-dark-ink text-[17px] font-extrabold mt-0.5">
           {day.theme ?? `第 ${day.dayNumber} 天`}
         </Text>
-        <Text className="text-muted dark:text-dark-muted text-xs mt-0.5">{formatDate(day.date)}</Text>
+        <Text className="text-muted dark:text-dark-muted text-xs mt-0.5">
+          {formatDate(day.date)}
+        </Text>
       </View>
 
       {/* 活動卡片清單 */}
@@ -103,12 +105,16 @@ function DayColumn({
             key={a.id}
             activity={a}
             currencySymbol={currencySymbol}
+            onPress={() => onPressActivity(a)}
           />
         ))}
       </View>
 
       {/* 新增按鈕(虛線) */}
-      <Pressable className="flex-row items-center justify-center gap-1.5 mt-3 py-2.5 border-[1.5px] border-dashed border-line dark:border-dark-line rounded-[12px] active:opacity-70">
+      <Pressable
+        onPress={onAdd}
+        className="flex-row items-center justify-center gap-1.5 mt-3 py-2.5 border-[1.5px] border-dashed border-line dark:border-dark-line rounded-[12px] active:opacity-70"
+      >
         <Plus size={14} color="#6c7bd6" />
         <Text className="text-accent dark:text-dark-accent text-[13px] font-bold">新增景點</Text>
       </Pressable>

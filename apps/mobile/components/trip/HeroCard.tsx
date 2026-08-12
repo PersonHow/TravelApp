@@ -59,14 +59,10 @@ export function HeroCard({ title, startDate, endDate, activityCount }: HeroCardP
           {title}
         </Text>
 
-        <Text
-          className="text-sm mt-3 tracking-wider"
-          style={{ color: t.ink, opacity: 0.85 }}
-        >
+        <Text className="text-sm mt-3 tracking-wider" style={{ color: t.ink, opacity: 0.85 }}>
           {dateRange}
           <Text style={{ opacity: 0.5 }}> · </Text>
-          {days} 天
-          <Text style={{ opacity: 0.5 }}> · </Text>
+          {days} 天<Text style={{ opacity: 0.5 }}> · </Text>
           {activityCount} 個項目
         </Text>
       </View>

@@ -30,10 +30,7 @@ export default function LoginScreen() {
     setError(null)
     setLoading(true)
     try {
-      const { user, accessToken, refreshToken } = await authService.login(
-        email.trim(),
-        password,
-      )
+      const { user, accessToken, refreshToken } = await authService.login(email.trim(), password)
       setSession({ user, accessToken, refreshToken })
       // 不用手動 router.replace；_layout 的 redirect 會帶走
     } catch (e) {
@@ -66,12 +63,16 @@ export default function LoginScreen() {
               <Text className="text-ink text-3xl">✈</Text>
             </LinearGradient>
             <Text className="text-ink dark:text-dark-ink text-2xl font-black">我的旅遊 App</Text>
-            <Text className="text-muted dark:text-dark-muted text-sm mt-1">登入以同步你的家庭行程</Text>
+            <Text className="text-muted dark:text-dark-muted text-sm mt-1">
+              登入以同步你的家庭行程
+            </Text>
           </View>
 
           <View className="gap-3">
             <View>
-              <Text className="text-muted dark:text-dark-muted text-xs font-bold tracking-wider mb-1.5">EMAIL</Text>
+              <Text className="text-muted dark:text-dark-muted text-xs font-bold tracking-wider mb-1.5">
+                EMAIL
+              </Text>
               <TextInput
                 value={email}
                 onChangeText={setEmail}
@@ -84,7 +85,9 @@ export default function LoginScreen() {
               />
             </View>
             <View>
-              <Text className="text-muted dark:text-dark-muted text-xs font-bold tracking-wider mb-1.5">密碼</Text>
+              <Text className="text-muted dark:text-dark-muted text-xs font-bold tracking-wider mb-1.5">
+                密碼
+              </Text>
               <TextInput
                 value={password}
                 onChangeText={setPassword}

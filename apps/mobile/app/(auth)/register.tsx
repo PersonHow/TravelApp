@@ -49,12 +49,16 @@ export default function RegisterScreen() {
         <View className="flex-1 px-6 justify-center">
           <View className="items-center mb-8">
             <Text className="text-ink dark:text-dark-ink text-2xl font-black">建立帳號</Text>
-            <Text className="text-muted dark:text-dark-muted text-sm mt-1">註冊後可加入家庭一起規劃</Text>
+            <Text className="text-muted dark:text-dark-muted text-sm mt-1">
+              註冊後可加入家庭一起規劃
+            </Text>
           </View>
 
           <View className="gap-3">
             <View>
-              <Text className="text-muted dark:text-dark-muted text-xs font-bold tracking-wider mb-1.5">姓名</Text>
+              <Text className="text-muted dark:text-dark-muted text-xs font-bold tracking-wider mb-1.5">
+                姓名
+              </Text>
               <TextInput
                 value={name}
                 onChangeText={setName}
@@ -64,7 +68,9 @@ export default function RegisterScreen() {
               />
             </View>
             <View>
-              <Text className="text-muted dark:text-dark-muted text-xs font-bold tracking-wider mb-1.5">EMAIL</Text>
+              <Text className="text-muted dark:text-dark-muted text-xs font-bold tracking-wider mb-1.5">
+                EMAIL
+              </Text>
               <TextInput
                 value={email}
                 onChangeText={setEmail}
@@ -77,7 +83,9 @@ export default function RegisterScreen() {
               />
             </View>
             <View>
-              <Text className="text-muted dark:text-dark-muted text-xs font-bold tracking-wider mb-1.5">密碼</Text>
+              <Text className="text-muted dark:text-dark-muted text-xs font-bold tracking-wider mb-1.5">
+                密碼
+              </Text>
               <TextInput
                 value={password}
                 onChangeText={setPassword}

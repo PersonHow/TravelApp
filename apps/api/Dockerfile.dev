@@ -1,0 +1,32 @@
+# 本機開發用：在 Linux 容器內安裝後端依賴、產生 Prisma Client，並以 tsx watch 熱重載
+# build context 是 repo 根目錄（需讀取 root package.json / lockfile / workspace 設定）
+# 正式部署的 image 之後另寫 Dockerfile（多階段、只裝 production 依賴）
+FROM node:22-alpine
+
+# Prisma 引擎在 alpine 需要 openssl
+RUN apk add --no-cache openssl
+
+WORKDIR /app
+
+# 先只複製各 workspace 的 manifest，讓「安裝依賴」這層能被 Docker 快取
+# （只改原始碼時不會重裝套件）
+COPY package.json package-lock.json ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/mobile/package.json ./apps/mobile/
+COPY packages/shared-types/package.json ./packages/shared-types/
+
+# 只安裝後端（含 root）的依賴，不拉前端 Expo（容器用不到、又重）
+RUN npm install -w @travel-app/api --include-workspace-root
+
+# 複製後端原始碼與共用型別
+COPY apps/api ./apps/api
+COPY packages/shared-types ./packages/shared-types
+
+# 產生 Prisma Client（linux-musl 引擎；與 Mac 的引擎不同，必須在容器內產生）
+RUN npm run prisma:generate -w @travel-app/api
+
+WORKDIR /app/apps/api
+EXPOSE 3000
+
+# 預設啟動指令（compose 會覆寫成「先套用 migration 再啟動」）
+CMD ["npm", "run", "dev"]

@@ -18,13 +18,13 @@ export const familyController = {
     res.json({ success: true, data: families })
   },
 
-  // POST /api/families/:id/members
+  // POST /api/families/:id/members（用 email 邀請）
   async addMember(req: Request, res: Response) {
-    const { userId } = req.body ?? {}
-    if (!userId) throw AppError.badRequest('userId 為必填')
-    const member = await familyService.addMember({
+    const { email } = req.body ?? {}
+    if (!email) throw AppError.badRequest('email 為必填')
+    const member = await familyService.addMemberByEmail({
       familyId: req.params.id,
-      userId,
+      email: String(email).trim(),
       requesterId: req.userId!,
     })
     res.status(201).json({ success: true, data: member })

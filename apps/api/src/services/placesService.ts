@@ -26,7 +26,8 @@ export const placesService = {
       throw new AppError(503, 'INTEGRATION_NOT_CONFIGURED', 'Google Places API 金鑰尚未設定')
     }
 
-    const url = `${PLACES_TEXT_SEARCH}?query=${encodeURIComponent(query)}&key=${key}`
+    // language=zh-TW:名稱與地址盡量回繁體中文(使用者都是台灣家庭)
+    const url = `${PLACES_TEXT_SEARCH}?query=${encodeURIComponent(query)}&language=zh-TW&key=${key}`
     const resp = await fetch(url)
     if (!resp.ok) {
       throw new AppError(502, 'UPSTREAM_ERROR', 'Google Places 服務回應異常')

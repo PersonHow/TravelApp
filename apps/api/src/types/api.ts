@@ -1,18 +1,3 @@
-// 統一 API 回應格式（對應 CLAUDE.md 規範）
-
-// 成功：{ success: true, data: ... }
-export interface ApiSuccess<T> {
-  success: true
-  data: T
-}
-
-// 失敗：{ success: false, error: { code, message } }
-export interface ApiErrorBody {
-  success: false
-  error: {
-    code: string
-    message: string
-  }
-}
-
-export type ApiResponse<T> = ApiSuccess<T> | ApiErrorBody
+// 統一 API 回應格式：改由 packages/shared-types 提供（前後端共用）
+// 保留這個檔案讓既有的 '../types/api' import 路徑不變
+export type { ApiErrorBody, ApiResponse, ApiSuccess } from '@travel-app/shared-types'

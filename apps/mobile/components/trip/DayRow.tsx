@@ -18,7 +18,9 @@ export function DayRow({ dayNumber, date, activityCount, theme, onPress }: DayRo
       className="flex-row items-center gap-3 bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-card p-3.5 mt-2.5 active:opacity-80"
     >
       <View className="w-10 h-10 rounded-card bg-accent-soft dark:bg-accent/25 items-center justify-center">
-        <Text className="text-accent dark:text-dark-accent font-black text-[15px]">{dayNumber}</Text>
+        <Text className="text-accent dark:text-dark-accent font-black text-[15px]">
+          {dayNumber}
+        </Text>
       </View>
       <View className="flex-1">
         <Text className="text-ink dark:text-dark-ink font-bold text-[14.5px]">

@@ -62,6 +62,8 @@ model Trip {
   startDate DateTime
   endDate   DateTime
   familyId  String
+  // 目的地(如「日本・東京」),給 AI 判斷當地語言與地區,生成短句/排行程用
+  destination String?
   // 幣別與匯率(設計檔顯示「¥600 ≈ NT$126」需要這兩個欄位)
   currency  String?  // ISO 4217 例如 "JPY"、"KRW"
   symbol    String?  // 顯示符號 例如 "¥"、"₩"
@@ -74,6 +76,8 @@ model Trip {
   tripDays        TripDay[]
   hotels          Hotel[]
   flights         Flight[]
+  packingItems    PackingItem[]
+  phrases         Phrase[]
 }
 
 // 景點（可被多個行程共用，資料可來自 Google Places）
@@ -137,6 +141,10 @@ model DayActivity {
   place        String? // 地點/區域,例如 "台東区浅草"（短字串,跟 Attraction 的詳細地址不同）
   hours        String? // 營業時間區間,自由字串例如 "06:00–17:00"
   price        Int? // 票價/消費,單位看所屬 Trip.currency（整數,0 = 免費）
+  // 精確位置(景點搜尋帶入時一併存,給「開啟地圖」與之後的內嵌地圖 pin 用)
+  placeId      String? // Google Places place_id
+  lat          Float?
+  lng          Float?
   createdAt    DateTime  @default(now())
 
   tripDay    TripDay     @relation(fields: [tripDayId], references: [id], onDelete: Cascade)
@@ -169,7 +177,34 @@ model Flight {
   arrivalAirport   String // 如 NRT
   departureTime    DateTime
   arrivalTime      DateTime
+  aircraft         String? // 機型,例如 "A350-900"
+  accessNote       String? // 前往機場方式備註(自由文字,航班詳細頁顯示)
   createdAt        DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+// 旅遊短句(AI 生成,跟著 Trip、cascade 刪除;全家共用同一份,生成一次不重複計費)
+model Phrase {
+  id        String   @id @default(cuid())
+  tripId    String
+  category  String // "greeting" | "dining" | "transport" | "shopping" | "emergency"
+  text      String // 當地語言原文
+  reading   String? // 讀法(羅馬拼音等,無法標注時為空)
+  meaning   String // 中文意思
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+// 行李清單項目(跟著 Trip,在航班詳細頁顯示與勾選)
+model PackingItem {
+  id        String   @id @default(cuid())
+  tripId    String
+  name      String
+  checked   Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }

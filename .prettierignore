@@ -1,0 +1,9 @@
+# 建置產物與自動生成檔不排版
+node_modules
+dist
+.expo
+coverage
+package-lock.json
+apps/api/prisma/migrations
+# 文件排版是手寫的（CLAUDE.md 等），不給工具動
+*.md

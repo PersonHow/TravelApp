@@ -18,7 +18,7 @@ export const tripController = {
 
   // POST /api/trips
   async create(req: Request, res: Response) {
-    const { title, startDate, endDate, familyId } = req.body ?? {}
+    const { title, startDate, endDate, familyId, destination } = req.body ?? {}
     if (!title || !startDate || !endDate || !familyId) {
       throw AppError.badRequest('title、startDate、endDate、familyId 為必填')
     }
@@ -28,6 +28,7 @@ export const tripController = {
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         familyId,
+        destination,
       },
       req.userId!,
     )
@@ -36,13 +37,14 @@ export const tripController = {
 
   // PUT /api/trips/:id
   async update(req: Request, res: Response) {
-    const { title, startDate, endDate } = req.body ?? {}
+    const { title, startDate, endDate, destination } = req.body ?? {}
     const trip = await tripService.update(
       req.params.id,
       {
         title,
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,
+        destination,
       },
       req.userId!,
     )

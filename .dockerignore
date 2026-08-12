@@ -1,0 +1,11 @@
+# 不要把這些放進 build context / image
+**/node_modules
+**/dist
+**/.expo
+**/.env
+**/*.log
+.git
+
+# 後端容器用不到前端 Expo，只需要它的 package.json 維持 workspace 結構
+apps/mobile/**
+!apps/mobile/package.json

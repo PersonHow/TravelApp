@@ -1,6 +1,7 @@
-# 本機開發用 PostgreSQL（拋棄式，可隨意 reset）
-# 啟動：docker-compose up -d
-# 連線字串對應 apps/api/.env 的 DATABASE_URL
+# 本機開發環境：一行 `docker-compose up` 同時啟動 PostgreSQL + 後端 API
+#   - postgres：資料庫（拋棄式，可隨意 reset）
+#   - api：Express 後端，原始碼 bind mount 進容器，存檔即熱重載
+# 前端 Expo 不放這裡（模擬器/區網連線需在本機原生跑，見 CLAUDE.md）
 services:
   postgres:
     image: postgres:16-alpine
@@ -11,9 +12,45 @@ services:
       POSTGRES_PASSWORD: travel_dev_password
       POSTGRES_DB: travel_app
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - travel-pgdata:/var/lib/postgresql/data
+    # API 要等 DB 真的可連線才啟動（見 api.depends_on）
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U travel -d travel_app']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.dev
+    container_name: travel-app-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # 容器內連 DB 要用服務名 postgres，不是 localhost
+      DATABASE_URL: postgresql://travel:travel_dev_password@postgres:5432/travel_app
+      JWT_SECRET: change_me_in_local
+      PORT: '3000'
+      # bind mount 在 Docker Desktop 上有時收不到檔案事件，強制輪詢確保熱重載
+      CHOKIDAR_USEPOLLING: 'true'
+      # AI 生成（從 shell 或根目錄 .env 帶入；未設定回 503，設 "mock" 可無金鑰跑通流程）
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+      # Google Places 景點搜尋（未設定回 503）
+      GOOGLE_PLACES_API_KEY: ${GOOGLE_PLACES_API_KEY:-}
+    ports:
+      - '3000:3000'
+    # 只掛原始碼與 schema：容器自己的 node_modules / Prisma 引擎不被蓋掉
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - ./apps/api/prisma:/app/apps/api/prisma
+    # 啟動時先套用 migration（idempotent），再開熱重載 dev server
+    command: sh -c "npx prisma migrate deploy && npm run dev"
 
 volumes:
   travel-pgdata:

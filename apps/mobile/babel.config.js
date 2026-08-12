@@ -3,10 +3,7 @@
 module.exports = function (api) {
   api.cache(true)
   return {
-    presets: [
-      ['babel-preset-expo', { jsxImportSource: 'nativewind' }],
-      'nativewind/babel',
-    ],
+    presets: [['babel-preset-expo', { jsxImportSource: 'nativewind' }], 'nativewind/babel'],
     // 之後要用 reanimated 動畫時再加回 'react-native-reanimated/plugin'
     plugins: [],
   }

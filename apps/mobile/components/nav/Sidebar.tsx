@@ -1,33 +1,35 @@
-// 桌面版左側深色側欄(對應網頁版.html 的 .w-side)
+// 桌面版左側深色側欄（旅程範圍內使用，掛在 trip/[id]/_layout）
 //   ┌──────────────┐
 //   │ ✈ 旅遊 App     │  品牌
 //   │   {user.name} │
 //   │                │
-//   │ 目的地         │  使用者的 trips
-//   │ ● 東京自由行  │
+//   │ ← 所有旅程     │  回總覽
+//   │ ● 東京自由行  │  目前旅程
+//   │   7/1 – 7/5   │
 //   │                │
-//   │ 瀏覽           │  5 個 nav
-//   │ 🏠 首頁        │
-//   │ 📅 行程        │  ← 選中:珊瑚紅底
+//   │ 瀏覽           │  5 個 nav（滑動藥丸高亮）
+//   │ 🏠 總覽        │
+//   │ 📅 行程        │
 //   │ ...           │
-//   │                │
 //   │ ─────────     │
-//   │ 🌓 切換深色   │  暗色切換(placeholder)
+//   │ 🌓 切換深色   │
 //   │ 登出           │
 //   └──────────────┘
-import { useEffect } from 'react'
-import { View, Text, Pressable, ScrollView } from 'react-native'
-import { Link, usePathname } from 'expo-router'
+import { useEffect, useRef, useState } from 'react'
+import { View, Text, Pressable, ScrollView, Animated } from 'react-native'
+import { Link, usePathname, useRouter } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import {
   Home,
   Calendar,
+  Map,
   MapPin,
   Navigation,
   MessageCircle,
   Sun,
   Moon,
   LogOut,
+  ArrowLeft,
   type LucideIcon,
 } from 'lucide-react-native'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -35,16 +37,18 @@ import { useTripStore } from '@/store/useTripStore'
 import { useThemeStore } from '@/store/useThemeStore'
 import { formatDateRange } from '@/utils/format'
 
+// nav 項目：href 依目前旅程 id 組出來
 const NAV_ITEMS: {
-  href: '/' | '/schedule' | '/attractions' | '/transport' | '/phrases'
+  suffix: '' | '/schedule' | '/attractions' | '/map' | '/transport' | '/phrases'
   label: string
   Icon: LucideIcon
 }[] = [
-  { href: '/', label: '首頁', Icon: Home },
-  { href: '/schedule', label: '行程', Icon: Calendar },
-  { href: '/attractions', label: '景點', Icon: MapPin },
-  { href: '/transport', label: '交通住宿', Icon: Navigation },
-  { href: '/phrases', label: '用語', Icon: MessageCircle },
+  { suffix: '', label: '總覽', Icon: Home },
+  { suffix: '/schedule', label: '行程', Icon: Calendar },
+  { suffix: '/attractions', label: '景點', Icon: MapPin },
+  { suffix: '/map', label: '地圖', Icon: Map },
+  { suffix: '/transport', label: '交通住宿', Icon: Navigation },
+  { suffix: '/phrases', label: '用語', Icon: MessageCircle },
 ]
 
 // 沒有「每個 trip 對應的顏色」這個欄位,用 id hash 從色票挑一個
@@ -54,12 +58,10 @@ function dotColorFor(id: string) {
   return TRIP_DOT_COLORS[sum % TRIP_DOT_COLORS.length]
 }
 
-// 防禦性 path 比對:處理 trailing slash、空字串、(tabs)/index 等情況
-function isActivePath(pathname: string, href: string): boolean {
+// 防禦性 path 比對:處理 trailing slash;總覽（suffix 空字串）要求完全相等
+function isActivePath(pathname: string, href: string, isIndex: boolean): boolean {
   const clean = pathname.replace(/\/$/, '') || '/'
-  if (href === '/') {
-    return clean === '/' || clean === '' || clean === '/index'
-  }
+  if (isIndex) return clean === href
   return clean === href || clean.startsWith(href + '/')
 }
 
@@ -91,28 +93,76 @@ const SIDEBAR_THEMES = {
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
-  const { trips, currentTrip, loadDetail, loadTrips, clear: clearTrip } = useTripStore()
+  const { currentTrip, clear: clearTrip } = useTripStore()
   const dark = useThemeStore((s) => s.dark)
   const toggleDark = useThemeStore((s) => s.toggle)
   const t = dark ? SIDEBAR_THEMES.dark : SIDEBAR_THEMES.light
-
-  useEffect(() => {
-    if (trips.length === 0) loadTrips()
-  }, [trips.length, loadTrips])
 
   function handleLogout() {
     clearTrip()
     logout()
   }
 
+  // 選中高亮為單一「滑動藥丸」:記錄每個 nav 項目的 y/高度,切換路由時 spring 滑過去
+  const navLayouts = useRef<Record<string, { y: number; height: number }>>({})
+  const [layoutTick, setLayoutTick] = useState(0) // onLayout 後觸發 effect 重新定位
+  const pillTop = useRef(new Animated.Value(0)).current
+  const pillHeight = useRef(new Animated.Value(0)).current
+  const pillOpacity = useRef(new Animated.Value(0)).current
+  const pillPlaced = useRef(false)
+
+  const tripId = currentTrip?.id ?? ''
+  const navItems = NAV_ITEMS.map((item) => ({
+    ...item,
+    href: `/trip/${tripId}${item.suffix}` as const,
+    isIndex: item.suffix === '',
+  }))
+  const activeHref = navItems.find((item) => isActivePath(pathname, item.href, item.isIndex))?.href
+
+  useEffect(() => {
+    const layout = activeHref ? navLayouts.current[activeHref] : undefined
+    if (!layout) {
+      Animated.timing(pillOpacity, { toValue: 0, duration: 150, useNativeDriver: false }).start()
+      return
+    }
+    if (!pillPlaced.current) {
+      // 首次直接定位,不做滑入動畫
+      pillTop.setValue(layout.y)
+      pillHeight.setValue(layout.height)
+      pillOpacity.setValue(1)
+      pillPlaced.current = true
+      return
+    }
+    Animated.parallel([
+      Animated.spring(pillTop, {
+        toValue: layout.y,
+        stiffness: 260,
+        damping: 26,
+        mass: 1,
+        useNativeDriver: false,
+      }),
+      Animated.spring(pillHeight, {
+        toValue: layout.height,
+        stiffness: 260,
+        damping: 26,
+        mass: 1,
+        useNativeDriver: false,
+      }),
+      Animated.timing(pillOpacity, { toValue: 1, duration: 150, useNativeDriver: false }),
+    ]).start()
+  }, [activeHref, layoutTick, pillTop, pillHeight, pillOpacity])
+
   return (
     <View
       className="w-[264px] h-full flex-col"
       style={{ backgroundColor: t.bg, borderRightWidth: 1, borderRightColor: t.border }}
     >
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 22, flexGrow: 1 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 22, flexGrow: 1 }}
+      >
         {/* 品牌 */}
         <View className="flex-row items-center gap-2.5 px-1.5 pb-[18px]">
           <LinearGradient
@@ -133,46 +183,35 @@ export function Sidebar() {
           </View>
         </View>
 
-        {/* 目的地 (使用者所屬家庭的 trips) */}
-        <Text
-          style={{ color: t.textDim }}
-          className="text-[10.5px] font-bold tracking-[0.12em] uppercase mt-4 mb-2 ml-2"
+        {/* 回旅程總覽 + 目前旅程 */}
+        <Pressable
+          onPress={() => router.replace('/trips')}
+          className="flex-row items-center gap-2 px-2.5 py-2 rounded-[10px] active:opacity-70"
         >
-          目的地
-        </Text>
-        <View className="gap-1">
-          {trips.length === 0 && (
-            <Text style={{ color: t.textDim }} className="text-xs px-2.5 py-2">
-              尚無行程
-            </Text>
-          )}
-          {trips.map((trip) => {
-            const isActive = currentTrip?.id === trip.id
-            return (
-              <Pressable
-                key={trip.id}
-                onPress={() => loadDetail(trip.id)}
-                className="flex-row items-center gap-2.5 px-2.5 py-2 rounded-[10px] active:opacity-70"
-                style={isActive ? { backgroundColor: t.dividerBg } : undefined}
-              >
-                <View
-                  className="w-[9px] h-[9px] rounded-full"
-                  style={{ backgroundColor: dotColorFor(trip.id) }}
-                />
-                <Text
-                  style={{ color: isActive ? t.text : t.textDim }}
-                  className="text-sm font-semibold flex-1"
-                  numberOfLines={1}
-                >
-                  {trip.title}
-                </Text>
-                <Text style={{ color: t.textDim }} className="text-[10.5px]">
-                  {formatDateRange(trip.startDate, trip.endDate)}
-                </Text>
-              </Pressable>
-            )
-          })}
-        </View>
+          <ArrowLeft size={14} color={t.textDim} />
+          <Text style={{ color: t.textDim }} className="text-[13px] font-bold">
+            所有旅程
+          </Text>
+        </Pressable>
+        {currentTrip && (
+          <View
+            className="flex-row items-center gap-2.5 px-2.5 py-2.5 rounded-[10px] mt-1"
+            style={{ backgroundColor: t.dividerBg }}
+          >
+            <View
+              className="w-[9px] h-[9px] rounded-full"
+              style={{ backgroundColor: dotColorFor(currentTrip.id) }}
+            />
+            <View className="flex-1">
+              <Text style={{ color: t.text }} className="text-sm font-semibold" numberOfLines={1}>
+                {currentTrip.title}
+              </Text>
+              <Text style={{ color: t.textDim }} className="text-[10.5px] mt-0.5">
+                {formatDateRange(currentTrip.startDate, currentTrip.endDate)}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* 瀏覽 (5 個 nav) */}
         <Text
@@ -181,53 +220,51 @@ export function Sidebar() {
         >
           瀏覽
         </Text>
-        <View className="gap-[3px]">
-          {NAV_ITEMS.map((item) => {
-            const isActive = isActivePath(pathname, item.href)
+        <View className="gap-[3px]" style={{ position: 'relative' }}>
+          {/* 滑動藥丸:唯一的選中背景,切換 nav 時滑到新位置 */}
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: pillTop,
+              height: pillHeight,
+              opacity: pillOpacity,
+              borderRadius: 10,
+              shadowColor: t.activeShadow,
+              shadowOpacity: dark ? 0.42 : 0.55,
+              shadowOffset: { width: 0, height: 6 },
+              shadowRadius: 22,
+            }}
+          >
+            <LinearGradient
+              colors={t.activeGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ flex: 1, borderRadius: 10 }}
+            />
+          </Animated.View>
+          {navItems.map((item) => {
+            const isActive = item.href === activeHref
             const { Icon } = item
             return (
-              <Link key={item.href} href={item.href} asChild>
+              <Link key={item.suffix} href={item.href} asChild>
                 <Pressable
-                  className="flex-row items-center gap-2.5 px-3 py-2.5 rounded-[10px] active:opacity-80 overflow-hidden"
-                  style={
-                    isActive
-                      ? {
-                          shadowColor: t.activeShadow,
-                          shadowOpacity: dark ? 0.42 : 0.55,
-                          shadowOffset: { width: 0, height: 6 },
-                          shadowRadius: 22,
-                        }
-                      : undefined
-                  }
+                  className="flex-row items-center gap-2.5 px-3 py-2.5 rounded-[10px] active:opacity-80"
+                  onLayout={(e) => {
+                    const { y, height } = e.nativeEvent.layout
+                    navLayouts.current[item.href] = { y, height }
+                    setLayoutTick((n) => n + 1)
+                  }}
                 >
-                  {isActive && (
-                    <LinearGradient
-                      colors={t.activeGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      pointerEvents="none"
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        borderRadius: 10,
-                      }}
-                    />
-                  )}
-                  <View style={{ zIndex: 1 }}>
-                    <Icon
-                      key={isActive ? 'on' : 'off'}
-                      size={16}
-                      color={isActive ? t.activeInk : t.iconInactive}
-                    />
-                  </View>
+                  <Icon
+                    key={isActive ? 'on' : 'off'}
+                    size={16}
+                    color={isActive ? t.activeInk : t.iconInactive}
+                  />
                   <Text
-                    style={{
-                      zIndex: 1,
-                      color: isActive ? t.activeInk : t.iconInactive,
-                    }}
+                    style={{ color: isActive ? t.activeInk : t.iconInactive }}
                     className={`text-[14.5px] ${isActive ? 'font-bold' : 'font-medium'}`}
                   >
                     {item.label}
@@ -249,7 +286,11 @@ export function Sidebar() {
           className="flex-row items-center gap-2.5 px-3 py-2.5 rounded-[10px] active:opacity-70"
           style={{ borderWidth: 1, borderColor: t.dividerBg }}
         >
-          {dark ? <Sun size={14} color={t.iconInactive} /> : <Moon size={14} color={t.iconInactive} />}
+          {dark ? (
+            <Sun size={14} color={t.iconInactive} />
+          ) : (
+            <Moon size={14} color={t.iconInactive} />
+          )}
           <Text style={{ color: t.iconInactive }} className="text-[13px] font-semibold">
             {dark ? '切換淺色' : '切換深色'}
           </Text>

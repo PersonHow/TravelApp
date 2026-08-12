@@ -18,14 +18,20 @@ export function categoryStyle(type: ActivityType | null | undefined): CategorySt
 }
 
 // 價錢顯示:0 → 免費、有值 → ¥600、null → 空字串
-export function formatPrice(price: number | null | undefined, symbol: string | null | undefined): string {
+export function formatPrice(
+  price: number | null | undefined,
+  symbol: string | null | undefined,
+): string {
   if (price == null) return ''
   if (price === 0) return '免費'
   return `${symbol ?? ''}${price.toLocaleString('en-US')}`
 }
 
 // 換算台幣:¥600 * 0.21 ≈ NT$126(設計檔的「≈ NT$X」)
-export function toTWD(price: number | null | undefined, fx: number | null | undefined): string | null {
+export function toTWD(
+  price: number | null | undefined,
+  fx: number | null | undefined,
+): string | null {
   if (price == null || price === 0 || fx == null) return null
   return `NT$${Math.round(price * fx).toLocaleString('en-US')}`
 }

@@ -1,6 +1,8 @@
-// 進入點：交給 _layout 的 redirect 邏輯處理，這裡只負責不渲染任何內容
-import { View } from 'react-native'
+// 進入點：依登入狀態導向（根 layout 會等 AsyncStorage 還原完才渲染到這裡）
+import { Redirect } from 'expo-router'
+import { useAuthStore } from '@/store/useAuthStore'
 
 export default function Index() {
-  return <View className="flex-1 bg-bg" />
+  const accessToken = useAuthStore((s) => s.accessToken)
+  return <Redirect href={accessToken ? '/trips' : '/(auth)/login'} />
 }

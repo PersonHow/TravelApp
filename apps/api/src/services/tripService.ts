@@ -24,7 +24,7 @@ export const tripService = {
     })
   },
 
-  // 取得單一行程（含景點、每日活動、飯店、航班）——僅限所屬家庭成員
+  // 取得單一行程（含景點、每日活動、飯店、航班、行李清單）——僅限所屬家庭成員
   async findById(id: string, userId: string) {
     const trip = await prisma.trip.findUnique({
       where: { id },
@@ -33,6 +33,7 @@ export const tripService = {
         tripDays: { include: { activities: true } },
         hotels: true,
         flights: true,
+        packingItems: { orderBy: { createdAt: 'asc' } },
       },
     })
     if (!trip) throw AppError.notFound('找不到此行程')
@@ -47,6 +48,7 @@ export const tripService = {
       startDate: Date
       endDate: Date
       familyId: string
+      destination?: string
     },
     userId: string,
   ) {
@@ -57,7 +59,7 @@ export const tripService = {
   // 更新行程（只更新有傳入的欄位）——僅限所屬家庭成員
   async update(
     id: string,
-    data: { title?: string; startDate?: Date; endDate?: Date },
+    data: { title?: string; startDate?: Date; endDate?: Date; destination?: string | null },
     userId: string,
   ) {
     await tripService.assertAccess(id, userId)

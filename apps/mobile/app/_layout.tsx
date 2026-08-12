@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useThemeStore } from '@/store/useThemeStore'
 import '../global.css'
 
-// 沒登入卻在受保護區 → 踢回 /login；登入了卻在 /login → 踢進 tabs
+// 沒登入卻在受保護區 → 踢回 /login；登入了卻在 /login → 踢到旅程總覽
 function useAuthRedirect() {
   const router = useRouter()
   const segments = useSegments()
@@ -22,7 +22,7 @@ function useAuthRedirect() {
     if (!accessToken && !inAuthGroup) {
       router.replace('/(auth)/login')
     } else if (accessToken && inAuthGroup) {
-      router.replace('/(tabs)')
+      router.replace('/trips')
     }
   }, [accessToken, hasHydrated, segments, router])
 }

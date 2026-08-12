@@ -10,6 +10,8 @@ interface AuthState {
   user: User | null
   hasHydrated: boolean
   setSession: (s: { accessToken: string; refreshToken: string; user: User }) => void
+  // refresh 成功後只換 token、user 不動
+  setTokens: (t: { accessToken: string; refreshToken: string }) => void
   logout: () => void
   setHydrated: () => void
 }
@@ -21,8 +23,8 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       user: null,
       hasHydrated: false,
-      setSession: ({ accessToken, refreshToken, user }) =>
-        set({ accessToken, refreshToken, user }),
+      setSession: ({ accessToken, refreshToken, user }) => set({ accessToken, refreshToken, user }),
+      setTokens: ({ accessToken, refreshToken }) => set({ accessToken, refreshToken }),
       logout: () => set({ accessToken: null, refreshToken: null, user: null }),
       setHydrated: () => set({ hasHydrated: true }),
     }),
