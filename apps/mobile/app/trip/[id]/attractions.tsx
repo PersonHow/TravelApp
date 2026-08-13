@@ -222,9 +222,10 @@ function AttractionCard({
   const emoji = CAT_EMOJI[activity.type ?? 'spot']
 
   return (
+    // flex-1:撐滿外層 wrapper 的高度(同一列以最高的卡為準,整列等高)
     <Pressable
       onPress={onPress}
-      className="rounded-[16px] overflow-hidden bg-surface dark:bg-dark-surface border border-line dark:border-dark-line active:opacity-80"
+      className="flex-1 rounded-[16px] overflow-hidden bg-surface dark:bg-dark-surface border border-line dark:border-dark-line active:opacity-80"
     >
       {/* 彩色 banner + emoji */}
       <View className="h-[96px] items-center justify-center" style={{ backgroundColor: bg }}>
@@ -244,33 +245,35 @@ function AttractionCard({
         </View>
       </View>
 
-      {/* 資訊區 */}
-      <View className="p-3">
-        <Text
-          className="text-ink dark:text-dark-ink text-[14.5px] font-extrabold leading-[19px]"
-          numberOfLines={2}
-        >
-          {activity.title}
-        </Text>
+      {/* 資訊區:flex-1 + justify-between,價錢固定貼卡片底部(整列等高時空隙留在中間) */}
+      <View className="p-3 flex-1 justify-between">
+        <View>
+          <Text
+            className="text-ink dark:text-dark-ink text-[14.5px] font-extrabold leading-[19px]"
+            numberOfLines={2}
+          >
+            {activity.title}
+          </Text>
 
-        {activity.place && (
-          <View className="flex-row items-center gap-1 mt-1.5">
-            <MapPin size={11} color="#8c89a8" />
-            <Text
-              className="text-muted dark:text-dark-muted text-[11.5px] flex-1"
-              numberOfLines={1}
-            >
-              {activity.place}
-            </Text>
-          </View>
-        )}
+          {activity.place && (
+            <View className="flex-row items-center gap-1 mt-1.5">
+              <MapPin size={11} color="#8c89a8" />
+              <Text
+                className="text-muted dark:text-dark-muted text-[11.5px] flex-1"
+                numberOfLines={1}
+              >
+                {activity.place}
+              </Text>
+            </View>
+          )}
 
-        {activity.hours && (
-          <View className="flex-row items-center gap-1 mt-1">
-            <Clock size={10} color="#8c89a8" />
-            <Text className="text-muted dark:text-dark-muted text-[11px]">{activity.hours}</Text>
-          </View>
-        )}
+          {activity.hours && (
+            <View className="flex-row items-center gap-1 mt-1">
+              <Clock size={10} color="#8c89a8" />
+              <Text className="text-muted dark:text-dark-muted text-[11px]">{activity.hours}</Text>
+            </View>
+          )}
+        </View>
 
         {(priceText || twdText) && (
           <View className="flex-row items-end justify-between mt-2">
