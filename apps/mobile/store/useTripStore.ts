@@ -17,6 +17,9 @@ interface TripState {
   clear: () => void
 }
 
+// 避免快速切換旅程時，較慢完成的舊請求覆蓋目前畫面。
+let latestDetailRequest = 0
+
 export const useTripStore = create<TripState>((set, get) => ({
   trips: [],
   currentTrip: null,
@@ -35,13 +38,14 @@ export const useTripStore = create<TripState>((set, get) => ({
   },
 
   async loadDetail(id: string) {
+    const requestId = ++latestDetailRequest
     set({ loading: true, error: null })
     try {
       const trip = await tripService.detail(id)
-      set({ currentTrip: trip, loading: false })
+      if (requestId === latestDetailRequest) set({ currentTrip: trip, loading: false })
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : '載入失敗'
-      set({ loading: false, error: msg })
+      if (requestId === latestDetailRequest) set({ loading: false, error: msg })
     }
   },
 
@@ -49,7 +53,7 @@ export const useTripStore = create<TripState>((set, get) => ({
     const current = get().currentTrip
     if (!current) return
     const trip = await tripService.detail(current.id)
-    set({ currentTrip: trip })
+    if (get().currentTrip?.id === current.id) set({ currentTrip: trip })
   },
 
   async removeTrip(id: string) {
@@ -61,6 +65,7 @@ export const useTripStore = create<TripState>((set, get) => ({
   },
 
   clear() {
+    latestDetailRequest++
     set({ trips: [], currentTrip: null, error: null })
   },
 }))

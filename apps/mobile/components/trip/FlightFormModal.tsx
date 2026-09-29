@@ -1,12 +1,15 @@
 // 航班新增／編輯彈窗（交通住宿頁使用）
 import { useEffect, useState } from 'react'
+import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native'
+import { Search } from 'lucide-react-native'
 import { Field, FormSheet } from '@/components/common/FormSheet'
 import { DateField } from '@/components/common/DateField'
 import { ApiError } from '@/services/api'
+import { flightSearchService } from '@/services/flightSearchService'
 import { tripService } from '@/services/tripService'
 import { useTripStore } from '@/store/useTripStore'
-import { parseDateTime, toDateTimeInput } from '@/utils/format'
-import type { Flight } from '@/types/api'
+import { formatDate, formatTime, parseDateTime, toDateTimeInput } from '@/utils/format'
+import type { Flight, FlightSearchResult } from '@/types/api'
 
 interface FlightFormModalProps {
   visible: boolean
@@ -29,10 +32,14 @@ export function FlightFormModal({ visible, onClose, tripId, flight }: FlightForm
   const [accessNote, setAccessNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // 航班搜尋（AviationStack）：按搜尋鈕才查（免費額度僅 100 次／月），null = 尚未搜過
+  const [searching, setSearching] = useState(false)
+  const [results, setResults] = useState<FlightSearchResult[] | null>(null)
 
   useEffect(() => {
     if (!visible) return
     setError(null)
+    setResults(null)
     setFlightNumber(flight?.flightNumber ?? '')
     setAirline(flight?.airline ?? '')
     setDepartureAirport(flight?.departureAirport ?? '')
@@ -42,6 +49,34 @@ export function FlightFormModal({ visible, onClose, tripId, flight }: FlightForm
     setAircraft(flight?.aircraft ?? '')
     setAccessNote(flight?.accessNote ?? '')
   }, [visible, flight])
+
+  // 用航班編號查 AviationStack，點結果自動帶入各欄位
+  async function handleSearch() {
+    const query = flightNumber.trim()
+    if (!query || searching) return
+    setSearching(true)
+    setError(null)
+    try {
+      setResults(await flightSearchService.search(query))
+    } catch (e) {
+      setResults(null)
+      setError(e instanceof ApiError ? e.message : '搜尋失敗，請稍後再試')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  // 點選搜尋結果：帶入編號／航空公司／機場／時間／機型（文字可再手動修改）
+  function pickResult(r: FlightSearchResult) {
+    setFlightNumber(r.flightNumber)
+    if (r.airline) setAirline(r.airline)
+    if (r.departureAirport) setDepartureAirport(r.departureAirport)
+    if (r.arrivalAirport) setArrivalAirport(r.arrivalAirport)
+    if (r.departureTime) setDepartureTime(toDateTimeInput(r.departureTime))
+    if (r.arrivalTime) setArrivalTime(toDateTimeInput(r.arrivalTime))
+    if (r.aircraft) setAircraft(r.aircraft)
+    setResults(null)
+  }
 
   async function handleSubmit() {
     setError(null)
@@ -120,13 +155,64 @@ export function FlightFormModal({ visible, onClose, tripId, flight }: FlightForm
       error={error}
       onDelete={flight ? handleDelete : undefined}
     >
-      <Field
-        label="航班編號 *"
-        value={flightNumber}
-        onChangeText={setFlightNumber}
-        placeholder="例如：BR198"
-        autoCapitalize="characters"
-      />
+      {/* 航班編號 + AviationStack 搜尋（按鈕觸發，點結果帶入全部欄位） */}
+      <View>
+        <Text className="text-muted dark:text-dark-muted text-xs font-bold tracking-wider mb-1.5">
+          航班編號 *
+        </Text>
+        <View className="flex-row items-center gap-2">
+          <TextInput
+            value={flightNumber}
+            onChangeText={setFlightNumber}
+            onSubmitEditing={handleSearch}
+            placeholder="例如：BR198"
+            placeholderTextColor="#8c89a8"
+            autoCapitalize="characters"
+            className="flex-1 bg-surface-2 dark:bg-dark-surface-2 border border-line dark:border-dark-line rounded-[11px] px-3.5 py-3 text-ink dark:text-dark-ink text-[15px]"
+          />
+          <Pressable
+            onPress={handleSearch}
+            disabled={searching || !flightNumber.trim()}
+            className="p-3 rounded-[11px] bg-accent dark:bg-dark-accent active:opacity-80 disabled:opacity-40"
+          >
+            {searching ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Search size={16} color="#fff" />
+            )}
+          </Pressable>
+        </View>
+        {results !== null &&
+          (results.length === 0 ? (
+            <Text className="text-muted dark:text-dark-muted text-[12px] mt-2">
+              查不到此航班，可直接手動填寫
+            </Text>
+          ) : (
+            <View className="mt-2 border border-line dark:border-dark-line rounded-[11px] overflow-hidden">
+              {results.slice(0, 5).map((r, i) => (
+                <Pressable
+                  key={`${r.flightNumber}-${r.departureTime ?? i}`}
+                  onPress={() => pickResult(r)}
+                  className={`px-3.5 py-2.5 active:opacity-70 bg-surface dark:bg-dark-surface ${
+                    i > 0 ? 'border-t border-line dark:border-dark-line' : ''
+                  }`}
+                >
+                  <Text className="text-ink dark:text-dark-ink text-[13.5px] font-bold">
+                    {r.flightNumber}
+                    {r.airline ? ` · ${r.airline}` : ''}
+                  </Text>
+                  <Text className="text-muted dark:text-dark-muted text-[11.5px] mt-0.5">
+                    {r.departureAirport ?? '—'} → {r.arrivalAirport ?? '—'}
+                    {r.departureTime
+                      ? ` · ${formatDate(r.departureTime)} ${formatTime(r.departureTime)}`
+                      : ''}
+                    {r.arrivalTime ? ` – ${formatTime(r.arrivalTime)}` : ''}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ))}
+      </View>
       <Field
         label="航空公司"
         value={airline}

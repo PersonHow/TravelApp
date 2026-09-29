@@ -2,7 +2,7 @@
 
 日本家庭旅遊協調 App — iOS + Android + Web,一份程式碼三平台。
 
-> 完整的架構規範、API 設計、Schema 慣例請看 [CLAUDE.md](./CLAUDE.md)。
+> 現行系統邊界與權限矩陣請看 [docs/architecture.md](./docs/architecture.md)；完整開發紀錄與 Schema 慣例請看 [CLAUDE.md](./CLAUDE.md)。
 > 這份 README 只專心講「怎麼跑起來」。
 
 ---

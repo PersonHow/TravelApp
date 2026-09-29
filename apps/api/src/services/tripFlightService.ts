@@ -50,6 +50,11 @@ export const tripFlightService = {
   ) {
     await tripService.assertAccess(tripId, userId)
     await assertFlightInTrip(flightId, tripId)
+    const current = await prisma.flight.findUnique({ where: { id: flightId } })
+    if (!current) throw AppError.notFound('找不到此航班')
+    const departureTime = data.departureTime ?? current.departureTime
+    const arrivalTime = data.arrivalTime ?? current.arrivalTime
+    if (arrivalTime < departureTime) throw AppError.badRequest('arrivalTime 不可早於 departureTime')
     return prisma.flight.update({ where: { id: flightId }, data })
   },
 

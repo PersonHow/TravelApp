@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import request from 'supertest'
 import { app, auth, createFamilyAndTrip, register, type Session } from './helpers'
 
-// 行程 CRUD 與「家庭成員身分」授權
+// 行程讀取、管理者操作與家庭成員協作權限
 describe('trips', () => {
   let member: Session
   let outsider: Session
@@ -25,6 +25,24 @@ describe('trips', () => {
       familyId,
     })
     expect(res.status).toBe(403)
+  })
+
+  it('建立行程：日期無效或結束日早於開始日回 400', async () => {
+    const invalid = await request(app).post('/api/trips').set(auth(member.accessToken)).send({
+      title: '日期錯誤',
+      startDate: 'not-a-date',
+      endDate: '2026-08-03',
+      familyId,
+    })
+    expect(invalid.status).toBe(400)
+
+    const reversed = await request(app).post('/api/trips').set(auth(member.accessToken)).send({
+      title: '日期倒置',
+      startDate: '2026-08-05',
+      endDate: '2026-08-03',
+      familyId,
+    })
+    expect(reversed.status).toBe(400)
   })
 
   it('list：只回自己所屬家庭的行程', async () => {
@@ -70,6 +88,30 @@ describe('trips', () => {
     expect(forbidden.status).toBe(403)
   })
 
+  it('修改開始日會同步 DAY 日期；不能縮短到截掉既有 DAY', async () => {
+    const { tripId: datedTrip } = await createFamilyAndTrip(member.accessToken, '改期行程')
+    await request(app)
+      .post(`/api/trips/${datedTrip}/days`)
+      .set(auth(member.accessToken))
+      .send({ date: '2026-07-02', dayNumber: 2 })
+
+    const moved = await request(app)
+      .put(`/api/trips/${datedTrip}`)
+      .set(auth(member.accessToken))
+      .send({ startDate: '2026-07-10', endDate: '2026-07-14' })
+    expect(moved.status).toBe(200)
+
+    const detail = await request(app).get(`/api/trips/${datedTrip}`).set(auth(member.accessToken))
+    expect(detail.body.data.tripDays[0].date).toContain('2026-07-11')
+
+    const shortened = await request(app)
+      .put(`/api/trips/${datedTrip}`)
+      .set(auth(member.accessToken))
+      .send({ endDate: '2026-07-10' })
+    expect(shortened.status).toBe(409)
+    expect(shortened.body.error.code).toBe('TRIP_DAYS_OUT_OF_RANGE')
+  })
+
   it('delete：非成員 403；成員刪除後再查回 404', async () => {
     const { tripId: tempTrip } = await createFamilyAndTrip(member.accessToken, '待刪行程')
 
@@ -93,5 +135,24 @@ describe('trips', () => {
 
     const res = await request(app).get(`/api/trips/${tripId}`).set(auth(outsider.accessToken))
     expect(res.status).toBe(200)
+  })
+
+  it('一般 MEMBER 可讀取，但不能改旅程基本資料、刪除或在家庭內建立旅程', async () => {
+    const update = await request(app)
+      .put(`/api/trips/${tripId}`)
+      .set(auth(outsider.accessToken))
+      .send({ title: '不應成功' })
+    expect(update.status).toBe(403)
+
+    const remove = await request(app).delete(`/api/trips/${tripId}`).set(auth(outsider.accessToken))
+    expect(remove.status).toBe(403)
+
+    const create = await request(app).post('/api/trips').set(auth(outsider.accessToken)).send({
+      title: '一般成員建立',
+      startDate: '2026-09-01',
+      endDate: '2026-09-03',
+      familyId,
+    })
+    expect(create.status).toBe(403)
   })
 })

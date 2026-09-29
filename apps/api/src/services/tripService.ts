@@ -1,3 +1,4 @@
+import type { FamilyRole } from '@prisma/client'
 import { prisma } from '../prisma/client'
 import { AppError } from '../utils/AppError'
 import { familyService } from './familyService'
@@ -16,6 +17,16 @@ export const tripService = {
     await familyService.assertMember(userId, trip.familyId)
   },
 
+  // 行程管理權限：建立、改基本資料、刪除等高影響操作只開放給管理者。
+  async assertRole(tripId: string, userId: string, roles: FamilyRole[]) {
+    const trip = await prisma.trip.findUnique({
+      where: { id: tripId },
+      select: { familyId: true },
+    })
+    if (!trip) throw AppError.notFound('找不到此行程')
+    return familyService.assertRole(userId, trip.familyId, roles)
+  },
+
   // 取得「使用者所屬家庭」的所有行程，依出發日排序（不再回傳全資料庫的行程）
   findAllForUser(userId: string) {
     return prisma.trip.findMany({
@@ -29,11 +40,19 @@ export const tripService = {
     const trip = await prisma.trip.findUnique({
       where: { id },
       include: {
-        tripAttractions: { include: { attraction: true } },
-        tripDays: { include: { activities: true } },
-        hotels: true,
-        flights: true,
+        // TripAttraction 是「尚未排入日期的收藏清單」；排入行程後以 DayActivity 為準。
+        tripAttractions: { include: { attraction: true }, orderBy: { order: 'asc' } },
+        tripDays: {
+          orderBy: { dayNumber: 'asc' },
+          include: { activities: { orderBy: [{ order: 'asc' }, { startTime: 'asc' }] } },
+        },
+        hotels: { orderBy: { checkIn: 'asc' } },
+        flights: { orderBy: { departureTime: 'asc' } },
         packingItems: { orderBy: { createdAt: 'asc' } },
+        expenses: {
+          orderBy: { date: 'asc' },
+          include: { payer: { select: { id: true, email: true, name: true } } },
+        },
       },
     })
     if (!trip) throw AppError.notFound('找不到此行程')
@@ -41,7 +60,7 @@ export const tripService = {
     return trip
   },
 
-  // 建立行程——使用者必須是目標家庭的成員
+  // 建立行程——使用者必須是目標家庭的 OWNER / ADMIN
   async create(
     data: {
       title: string
@@ -52,23 +71,54 @@ export const tripService = {
     },
     userId: string,
   ) {
-    await familyService.assertMember(userId, data.familyId)
+    await familyService.assertRole(userId, data.familyId, ['OWNER', 'ADMIN'])
     return prisma.trip.create({ data })
   },
 
-  // 更新行程（只更新有傳入的欄位）——僅限所屬家庭成員
+  // 更新行程（只更新有傳入的欄位）——僅限 OWNER / ADMIN
   async update(
     id: string,
     data: { title?: string; startDate?: Date; endDate?: Date; destination?: string | null },
     userId: string,
   ) {
-    await tripService.assertAccess(id, userId)
-    return prisma.trip.update({ where: { id }, data })
+    await tripService.assertRole(id, userId, ['OWNER', 'ADMIN'])
+    const current = await prisma.trip.findUnique({
+      where: { id },
+      include: { tripDays: { select: { id: true, dayNumber: true } } },
+    })
+    if (!current) throw AppError.notFound('找不到此行程')
+
+    const startDate = data.startDate ?? current.startDate
+    const endDate = data.endDate ?? current.endDate
+    if (endDate < startDate) throw AppError.badRequest('endDate 不可早於 startDate')
+
+    const dayCount = Math.floor((endDate.getTime() - startDate.getTime()) / 86400000) + 1
+    const outsideRange = current.tripDays.find((day) => day.dayNumber > dayCount)
+    if (outsideRange) {
+      throw new AppError(
+        409,
+        'TRIP_DAYS_OUT_OF_RANGE',
+        `行程目前有第 ${outsideRange.dayNumber} 天，請先移除超出新日期範圍的行程日`,
+      )
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const trip = await tx.trip.update({ where: { id }, data })
+      if (data.startDate) {
+        for (const day of current.tripDays) {
+          await tx.tripDay.update({
+            where: { id: day.id },
+            data: { date: new Date(startDate.getTime() + (day.dayNumber - 1) * 86400000) },
+          })
+        }
+      }
+      return trip
+    })
   },
 
-  // 刪除行程——僅限所屬家庭成員
+  // 刪除行程——僅限 OWNER / ADMIN
   async remove(id: string, userId: string) {
-    await tripService.assertAccess(id, userId)
+    await tripService.assertRole(id, userId, ['OWNER', 'ADMIN'])
     return prisma.trip.delete({ where: { id } })
   },
 

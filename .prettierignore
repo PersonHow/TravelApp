@@ -2,8 +2,10 @@
 node_modules
 dist
 .expo
+.claude
 coverage
 package-lock.json
+apps/mobile/expo-env.d.ts
 apps/api/prisma/migrations
 # 文件排版是手寫的（CLAUDE.md 等），不給工具動
 *.md

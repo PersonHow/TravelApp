@@ -43,6 +43,10 @@ services:
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
       # Google Places 景點搜尋（未設定回 503）
       GOOGLE_PLACES_API_KEY: ${GOOGLE_PLACES_API_KEY:-}
+      # AviationStack 航班搜尋（未設定回 503，設 "mock" 可無金鑰跑通流程）
+      AVIATION_STACK_API_KEY: ${AVIATION_STACK_API_KEY:-}
+      # Google Routes 大眾運輸路線（未設定回 503，設 "mock" 可無金鑰跑通流程）
+      GOOGLE_ROUTES_API_KEY: ${GOOGLE_ROUTES_API_KEY:-}
     ports:
       - '3000:3000'
     # 只掛原始碼與 schema：容器自己的 node_modules / Prisma 引擎不被蓋掉

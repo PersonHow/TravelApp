@@ -5,6 +5,7 @@
 **/.env
 **/*.log
 .git
+coverage
 
 # 後端容器用不到前端 Expo，只需要它的 package.json 維持 workspace 結構
 apps/mobile/**

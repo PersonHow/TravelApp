@@ -1,5 +1,7 @@
 import {
   combineDateTime,
+  hotelNights,
+  isToday,
   parseDateTime,
   timeToHHmm,
   toDateTimeInput,
@@ -76,6 +78,42 @@ describe('timeToHHmm', () => {
     // 用當地時間建構，避免測試結果依賴時區
     const d = new Date(2026, 6, 1, 8, 5)
     expect(timeToHHmm(d.toISOString())).toBe('08:05')
+  })
+})
+
+describe('isToday（以當地時區比對年月日）', () => {
+  it('今天的任何時刻都算今天', () => {
+    const now = new Date()
+    expect(isToday(now.toISOString())).toBe(true)
+    // 當地今天的 00:00 也算（跨時區時 ISO 的 UTC 日期可能不同天）
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0)
+    expect(isToday(midnight.toISOString())).toBe(true)
+  })
+
+  it('昨天與明天都不算', () => {
+    const now = new Date()
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 12)
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12)
+    expect(isToday(yesterday.toISOString())).toBe(false)
+    expect(isToday(tomorrow.toISOString())).toBe(false)
+  })
+})
+
+describe('hotelNights（以日曆日差計算晚數）', () => {
+  // 用當地時間建構，避免測試結果依賴時區
+  const local = (y: number, m: number, d: number, h: number) =>
+    new Date(y, m - 1, d, h).toISOString()
+
+  it('10/10 15:00 入住、10/13 11:00 退房是 3 晚', () => {
+    expect(hotelNights(local(2026, 10, 10, 15), local(2026, 10, 13, 11))).toBe(3)
+  })
+
+  it('深夜入住、隔天早上退房也算 1 晚', () => {
+    expect(hotelNights(local(2026, 10, 10, 23), local(2026, 10, 11, 8))).toBe(1)
+  })
+
+  it('日期顛倒不回負數', () => {
+    expect(hotelNights(local(2026, 10, 13, 15), local(2026, 10, 10, 11))).toBe(0)
   })
 })
 

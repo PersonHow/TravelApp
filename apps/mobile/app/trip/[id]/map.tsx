@@ -1,5 +1,5 @@
-// 地圖 tab：所有帶座標的活動 pin（依 DAY 上色），點 pin 標題可跳 Google 地圖
-// Web 版內嵌地圖尚未支援 → 降級成清單（每筆附「開啟地圖」連結）
+// 地圖 tab：所有帶座標的活動 pin（依 DAY 上色），點 pin 可跳 Google 地圖
+// Web 有設 EXPO_PUBLIC_GOOGLE_MAPS_API_KEY 就用內嵌地圖（Maps JavaScript API），沒設才降級清單
 import { Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { MapPin } from 'lucide-react-native'
 import { useTripStore } from '@/store/useTripStore'
@@ -72,8 +72,8 @@ export default function TripMapScreen() {
     )
   }
 
-  // Web：降級成清單
-  if (Platform.OS === 'web') {
+  // Web 且沒金鑰：降級成清單
+  if (Platform.OS === 'web' && !process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY) {
     return (
       <View className="flex-1 bg-bg dark:bg-dark-bg">
         <ScrollView
@@ -122,7 +122,7 @@ export default function TripMapScreen() {
     )
   }
 
-  // 原生：內嵌地圖 + DAY 圖例
+  // 內嵌地圖 + DAY 圖例（原生 react-native-maps／Web Maps JavaScript API，由 MapCanvas 分流）
   return (
     <View className="flex-1 bg-bg dark:bg-dark-bg">
       {/* DAY 圖例 */}

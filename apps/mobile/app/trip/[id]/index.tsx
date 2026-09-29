@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useTripStore } from '@/store/useTripStore'
 import { useIsDesktop } from '@/hooks/useIsDesktop'
 import { HeroCard } from '@/components/trip/HeroCard'
-import { DayRow } from '@/components/trip/DayRow'
+import { DayCarousel } from '@/components/trip/DayCarousel'
 import { FlightCard } from '@/components/trip/FlightCard'
 import { HotelCard } from '@/components/trip/HotelCard'
 import { AiPlanModal } from '@/components/trip/AiPlanModal'
@@ -32,7 +32,7 @@ export default function TripOverviewScreen() {
   const [activityModal, setActivityModal] = useState<ActivityModal>(null)
   // AI 幫我排:僅 OWNER/ADMIN 顯示按鈕(一般成員直接打 API 也會被後端 403 擋下)
   const [aiPlanOpen, setAiPlanOpen] = useState(false)
-  const [canAiPlan, setCanAiPlan] = useState(false)
+  const [canManageTrip, setCanManageTrip] = useState(false)
   const familyId = currentTrip?.familyId
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function TripOverviewScreen() {
         const role = families
           .find((f) => f.id === familyId)
           ?.members.find((m) => m.userId === userId)?.role
-        if (mounted) setCanAiPlan(role === 'OWNER' || role === 'ADMIN')
+        if (mounted) setCanManageTrip(role === 'OWNER' || role === 'ADMIN')
       })
       .catch(() => {})
     return () => {
@@ -88,7 +88,7 @@ export default function TripOverviewScreen() {
 
         {/* AI 幫我排（限 OWNER/ADMIN）＋ 編輯行程資訊（改名／改日期／刪除） */}
         <View className="flex-row items-center gap-2 self-end mt-2">
-          {canAiPlan && (
+          {canManageTrip && (
             <Pressable
               onPress={() => setAiPlanOpen(true)}
               className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent dark:bg-dark-accent active:opacity-80"
@@ -97,34 +97,21 @@ export default function TripOverviewScreen() {
               <Text className="text-white text-[12px] font-bold">AI 幫我排</Text>
             </Pressable>
           )}
-          <Pressable
-            onPress={() => setEditing(true)}
-            className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border border-line dark:border-dark-line active:opacity-70"
-          >
-            <Pencil size={12} color="#8c89a8" />
-            <Text className="text-muted dark:text-dark-muted text-[12px] font-bold">
-              編輯行程資訊
-            </Text>
-          </Pressable>
+          {canManageTrip && (
+            <Pressable
+              onPress={() => setEditing(true)}
+              className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border border-line dark:border-dark-line active:opacity-70"
+            >
+              <Pencil size={12} color="#8c89a8" />
+              <Text className="text-muted dark:text-dark-muted text-[12px] font-bold">
+                編輯行程資訊
+              </Text>
+            </Pressable>
+          )}
         </View>
 
-        {/* DAY 列表:寬螢幕 3 欄,窄螢幕單欄 */}
-        <Text className="text-muted dark:text-dark-muted text-xs font-bold tracking-wider mt-4 mb-1 px-0.5">
-          DAY 規劃
-        </Text>
-        <View className={isDesktop ? 'flex-row flex-wrap gap-3' : ''}>
-          {currentTrip.tripDays.map((d) => (
-            <View key={d.id} style={isDesktop ? { flexBasis: '32%', flexGrow: 1 } : undefined}>
-              <DayRow
-                dayNumber={d.dayNumber}
-                date={d.date}
-                activityCount={d.activities.length}
-                theme={d.theme ?? undefined}
-                onPress={() => setDayId(d.id)}
-              />
-            </View>
-          ))}
-        </View>
+        {/* DAY 規劃:橫向滑動＋桌面箭頭翻頁,今天的卡片亮燈並自動捲到可見 */}
+        <DayCarousel days={currentTrip.tripDays} onPressDay={setDayId} />
 
         {/* 航班 */}
         {(outbound || returning) && (

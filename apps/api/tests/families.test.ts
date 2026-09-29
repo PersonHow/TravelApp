@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import request from 'supertest'
 import { app, auth, register, type Session } from './helpers'
 
-// 家庭：建立者自動成 OWNER、只有成員能加人
+// 家庭：建立者自動成 OWNER、只有 OWNER / ADMIN 能加人
 describe('families', () => {
   let owner: Session
   let outsider: Session
@@ -57,7 +57,7 @@ describe('families', () => {
     expect(res.body.error.code).toBe('NOT_FOUND')
   })
 
-  it('成員可以用 email 邀請新成員，新成員角色為 MEMBER', async () => {
+  it('OWNER 可以用 email 邀請新成員，新成員角色為 MEMBER', async () => {
     const res = await request(app)
       .post(`/api/families/${familyId}/members`)
       .set(auth(owner.accessToken))
@@ -69,6 +69,16 @@ describe('families', () => {
     // 加入後就看得到這個家庭了
     const list = await request(app).get('/api/families').set(auth(outsider.accessToken))
     expect(list.body.data.map((f: { id: string }) => f.id)).toContain(familyId)
+  })
+
+  it('一般 MEMBER 不能邀請其他人（403）', async () => {
+    const candidate = await register('fam-candidate@test.local')
+    const res = await request(app)
+      .post(`/api/families/${familyId}/members`)
+      .set(auth(outsider.accessToken))
+      .send({ email: candidate.user.email })
+    expect(res.status).toBe(403)
+    expect(res.body.error.code).toBe('FORBIDDEN')
   })
 
   it('重複邀請已是成員的人回 409', async () => {

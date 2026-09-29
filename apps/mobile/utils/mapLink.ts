@@ -9,6 +9,16 @@ interface MapTarget {
   placeId: string | null
 }
 
+// 產生 Google Maps「導航」深層連結（免金鑰）：大眾運輸模式規劃到目標的路線
+export function googleMapsDirectionsUrl(target: MapTarget): string | null {
+  const destination =
+    target.lat != null && target.lng != null
+      ? `${target.lat},${target.lng}`
+      : [target.title, target.place].filter(Boolean).join(' ').trim()
+  if (!destination) return null
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=transit`
+}
+
 export function googleMapsUrl(target: MapTarget): string | null {
   if (target.lat != null && target.lng != null) {
     const base = `https://www.google.com/maps/search/?api=1&query=${target.lat},${target.lng}`

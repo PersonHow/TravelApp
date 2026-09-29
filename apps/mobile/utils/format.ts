@@ -81,6 +81,26 @@ export function toDateInput(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+// 日期（ISO）是否為裝置當地時區的「今天」
+export function isToday(iso: string): boolean {
+  const d = new Date(iso)
+  const now = new Date()
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  )
+}
+
+// 住宿晚數：以當地「日曆日」差計算（入住 23:00、隔天 08:00 退房也算 1 晚）
+export function hotelNights(checkInIso: string, checkOutIso: string): number {
+  const ci = new Date(checkInIso)
+  const co = new Date(checkOutIso)
+  const a = new Date(ci.getFullYear(), ci.getMonth(), ci.getDate())
+  const b = new Date(co.getFullYear(), co.getMonth(), co.getDate())
+  return Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000))
+}
+
 // 旅程天數（含頭含尾）
 export function tripLengthDays(startIso: string, endIso: string): number {
   const s = new Date(startIso)

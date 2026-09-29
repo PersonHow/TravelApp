@@ -1,6 +1,35 @@
 import type { Request, Response } from 'express'
+import { z } from 'zod'
 import { tripService } from '../services/tripService'
 import { AppError } from '../utils/AppError'
+import {
+  dateValue,
+  nonEmptyUpdate,
+  optionalText,
+  parseInput,
+  trimmedString,
+} from '../utils/validation'
+
+const createTripSchema = z
+  .object({
+    title: trimmedString('title'),
+    startDate: dateValue('startDate'),
+    endDate: dateValue('endDate'),
+    familyId: trimmedString('familyId', 100),
+    destination: optionalText('destination', 200),
+  })
+  .strict('包含不支援的欄位')
+  .refine((value) => value.endDate >= value.startDate, {
+    message: 'endDate 不可早於 startDate',
+    path: ['endDate'],
+  })
+
+const updateTripSchema = nonEmptyUpdate({
+  title: trimmedString('title').optional(),
+  startDate: dateValue('startDate').optional(),
+  endDate: dateValue('endDate').optional(),
+  destination: optionalText('destination', 200).nullable(),
+})
 
 // 行程控制器：解析請求 → 呼叫 service → 回傳統一格式 { success, data }
 export const tripController = {
@@ -18,36 +47,15 @@ export const tripController = {
 
   // POST /api/trips
   async create(req: Request, res: Response) {
-    const { title, startDate, endDate, familyId, destination } = req.body ?? {}
-    if (!title || !startDate || !endDate || !familyId) {
-      throw AppError.badRequest('title、startDate、endDate、familyId 為必填')
-    }
-    const trip = await tripService.create(
-      {
-        title,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        familyId,
-        destination,
-      },
-      req.userId!,
-    )
+    const input = parseInput(createTripSchema, req.body)
+    const trip = await tripService.create(input, req.userId!)
     res.status(201).json({ success: true, data: trip })
   },
 
   // PUT /api/trips/:id
   async update(req: Request, res: Response) {
-    const { title, startDate, endDate, destination } = req.body ?? {}
-    const trip = await tripService.update(
-      req.params.id,
-      {
-        title,
-        startDate: startDate ? new Date(startDate) : undefined,
-        endDate: endDate ? new Date(endDate) : undefined,
-        destination,
-      },
-      req.userId!,
-    )
+    const input = parseInput(updateTripSchema, req.body)
+    const trip = await tripService.update(req.params.id, input, req.userId!)
     res.json({ success: true, data: trip })
   },
 

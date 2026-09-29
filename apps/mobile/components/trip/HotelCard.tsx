@@ -1,7 +1,7 @@
 // 首頁的飯店卡：名稱 + 區域 + check-in/out 大時間
 import { View, Text, Pressable } from 'react-native'
-import { Home, MapPin, ArrowRight } from 'lucide-react-native'
-import { formatDate, formatTime } from '@/utils/format'
+import { Home, MapPin, ArrowRight, BedDouble } from 'lucide-react-native'
+import { formatDate, formatTime, hotelNights } from '@/utils/format'
 import type { Hotel } from '@/types/api'
 
 interface HotelCardProps {
@@ -27,6 +27,22 @@ export function HotelCard({ hotel, onPress }: HotelCardProps) {
               <Text className="text-muted dark:text-dark-muted text-xs">{hotel.address}</Text>
             </View>
           )}
+          {(hotel.roomInfo || hotel.roomNumber) && (
+            <View className="flex-row items-center gap-1 mt-1">
+              <BedDouble size={11} color="#8c89a8" />
+              <Text className="text-muted dark:text-dark-muted text-xs">
+                {[hotel.roomInfo, hotel.roomNumber && `房號 ${hotel.roomNumber}`]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+            </View>
+          )}
+        </View>
+        {/* 晚數由 check-in/out 換算,不用另外填 */}
+        <View className="px-2 py-0.5 rounded-full bg-accent-soft dark:bg-accent/25">
+          <Text className="text-accent dark:text-dark-accent text-[11px] font-bold">
+            {hotelNights(hotel.checkIn, hotel.checkOut)} 晚
+          </Text>
         </View>
       </View>
 

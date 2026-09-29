@@ -50,9 +50,9 @@ export const familyService = {
     })
   },
 
-  // 用 email 邀請成員（一般成員）：發起者本身必須是該家庭成員
+  // 用 email 邀請成員（一般成員）：只有 OWNER / ADMIN 可以管理成員
   async addMemberByEmail(input: { familyId: string; email: string; requesterId: string }) {
-    await familyService.assertMember(input.requesterId, input.familyId)
+    await familyService.assertRole(input.requesterId, input.familyId, ['OWNER', 'ADMIN'])
 
     const user = await prisma.user.findUnique({ where: { email: input.email } })
     if (!user) throw AppError.notFound('找不到這個 email 的使用者，請確認對方已註冊')

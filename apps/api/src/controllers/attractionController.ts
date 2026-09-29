@@ -8,6 +8,7 @@ export const attractionController = {
   async search(req: Request, res: Response) {
     const query = String(req.query.query ?? '').trim()
     if (!query) throw AppError.badRequest('query 查詢參數為必填')
+    if (query.length > 200) throw AppError.badRequest('query 最多 200 個字')
     const results = await placesService.search(query)
     res.json({ success: true, data: results })
   },

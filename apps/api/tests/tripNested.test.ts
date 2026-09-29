@@ -189,9 +189,17 @@ describe('trip nested resources', () => {
           checkIn: '2026-07-01T15:00:00Z',
           checkOut: '2026-07-05T10:00:00Z',
           bookingRef: 'BK-1',
+          roomInfo: '雙床房 ×2',
+          roomNumber: '1204、1206',
         })
       expect(ok.status).toBe(201)
-      expect(ok.body.data).toMatchObject({ tripId, name: '淺草豪景', bookingRef: 'BK-1' })
+      expect(ok.body.data).toMatchObject({
+        tripId,
+        name: '淺草豪景',
+        bookingRef: 'BK-1',
+        roomInfo: '雙床房 ×2',
+        roomNumber: '1204、1206',
+      })
       hotelId = ok.body.data.id
 
       const bad = await request(app)
@@ -205,15 +213,48 @@ describe('trip nested resources', () => {
       const ok = await request(app)
         .put(`/api/trips/${tripId}/hotels/${hotelId}`)
         .set(auth(member.accessToken))
-        .send({ address: '台東区花川戸' })
+        .send({ address: '台東区花川戸', roomInfo: null })
       expect(ok.status).toBe(200)
       expect(ok.body.data.address).toBe('台東区花川戸')
+      // roomInfo 傳 null 可清空
+      expect(ok.body.data.roomInfo).toBeNull()
 
       const wrongTrip = await request(app)
         .put(`/api/trips/${otherTripId}/hotels/${hotelId}`)
         .set(auth(member.accessToken))
         .send({ name: '不該成功' })
       expect(wrongTrip.status).toBe(404)
+    })
+
+    it('查抵達路線：缺 origin 400、無金鑰 503、mock 回替身路線、跨行程 404', async () => {
+      delete process.env.GOOGLE_ROUTES_API_KEY
+      const noOrigin = await request(app)
+        .get(`/api/trips/${tripId}/hotels/${hotelId}/transit-route`)
+        .set(auth(member.accessToken))
+      expect(noOrigin.status).toBe(400)
+
+      const noKey = await request(app)
+        .get(`/api/trips/${tripId}/hotels/${hotelId}/transit-route`)
+        .query({ origin: '關西機場' })
+        .set(auth(member.accessToken))
+      expect(noKey.status).toBe(503)
+
+      process.env.GOOGLE_ROUTES_API_KEY = 'mock'
+      const ok = await request(app)
+        .get(`/api/trips/${tripId}/hotels/${hotelId}/transit-route`)
+        .query({ origin: '關西機場' })
+        .set(auth(member.accessToken))
+      expect(ok.status).toBe(200)
+      expect(ok.body.data.durationMinutes).toBeGreaterThan(0)
+      expect(ok.body.data.steps.length).toBeGreaterThan(0)
+
+      // 拿 A 行程的權限查 B 行程的飯店要擋下
+      const wrongTrip = await request(app)
+        .get(`/api/trips/${otherTripId}/hotels/${hotelId}/transit-route`)
+        .query({ origin: '關西機場' })
+        .set(auth(member.accessToken))
+      expect(wrongTrip.status).toBe(404)
+      delete process.env.GOOGLE_ROUTES_API_KEY
     })
 
     it('非成員刪除回 403；成員刪除成功', async () => {

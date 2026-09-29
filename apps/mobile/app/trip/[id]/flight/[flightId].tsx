@@ -3,12 +3,11 @@
 import { useState } from 'react'
 import { View, Text, ScrollView, Pressable } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { ArrowLeft, Luggage, Navigation, Pencil, Plane } from 'lucide-react-native'
+import { ArrowLeft, Pencil, Plane } from 'lucide-react-native'
 import { useTripStore } from '@/store/useTripStore'
 import { useIsDesktop } from '@/hooks/useIsDesktop'
-import { FlightCard } from '@/components/trip/FlightCard'
+import { FlightDetail } from '@/components/trip/FlightDetail'
 import { FlightFormModal } from '@/components/trip/FlightFormModal'
-import { PackingList } from '@/components/trip/PackingList'
 
 export default function FlightDetailScreen() {
   const { flightId } = useLocalSearchParams<{ flightId: string }>()
@@ -77,56 +76,15 @@ export default function FlightDetailScreen() {
             </Text>
           </View>
         ) : (
-          <>
-            {/* 航班卡（含機場全名） */}
-            <View className="mt-4">
-              <FlightCard flight={flight} isReturn={isReturn} />
-            </View>
-
-            {/* 機型 */}
-            {flight.aircraft && (
-              <View className="flex-row items-center gap-2 mt-3 px-1">
-                <Plane size={13} color="#8c89a8" />
-                <Text className="text-muted dark:text-dark-muted text-[12.5px]">
-                  機型 {flight.aircraft}
-                </Text>
-              </View>
-            )}
-
-            {/* 前往機場方式 */}
-            <View className="flex-row items-center gap-1.5 mt-6 mb-2 px-0.5">
-              <Navigation size={14} color="#6c7bd6" />
-              <Text className="text-ink dark:text-dark-ink text-[15px] font-extrabold">
-                前往機場
-              </Text>
-            </View>
-            {flight.accessNote ? (
-              <View className="bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-[16px] p-4">
-                <Text className="text-ink dark:text-dark-ink text-[14px] leading-[22px]">
-                  {flight.accessNote}
-                </Text>
-              </View>
-            ) : (
-              <Pressable
-                onPress={() => setEditing(true)}
-                className="items-center py-5 border-[1.5px] border-dashed border-line dark:border-dark-line rounded-[14px] active:opacity-70"
-              >
-                <Text className="text-muted dark:text-dark-muted text-[13px]">
-                  還沒寫怎麼去機場，點這裡到「編輯」補上
-                </Text>
-              </Pressable>
-            )}
-
-            {/* 行李清單 */}
-            <View className="flex-row items-center gap-1.5 mt-6 mb-2 px-0.5">
-              <Luggage size={14} color="#6c7bd6" />
-              <Text className="text-ink dark:text-dark-ink text-[15px] font-extrabold">
-                行李清單
-              </Text>
-              <Text className="text-muted dark:text-dark-muted text-[11px]">（整趟旅程共用）</Text>
-            </View>
-            <PackingList tripId={currentTrip.id} items={currentTrip.packingItems} />
-          </>
+          <View className="mt-4">
+            <FlightDetail
+              flight={flight}
+              isReturn={isReturn}
+              tripId={currentTrip.id}
+              packingItems={currentTrip.packingItems}
+              onEdit={() => setEditing(true)}
+            />
+          </View>
         )}
       </ScrollView>
 

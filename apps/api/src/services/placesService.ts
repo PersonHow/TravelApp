@@ -1,4 +1,5 @@
 import { AppError } from '../utils/AppError'
+import { fetchWithTimeout } from '../utils/fetchWithTimeout'
 
 // Google Places Text Search 端點
 const PLACES_TEXT_SEARCH = 'https://maps.googleapis.com/maps/api/place/textsearch/json'
@@ -28,7 +29,7 @@ export const placesService = {
 
     // language=zh-TW:名稱與地址盡量回繁體中文(使用者都是台灣家庭)
     const url = `${PLACES_TEXT_SEARCH}?query=${encodeURIComponent(query)}&language=zh-TW&key=${key}`
-    const resp = await fetch(url)
+    const resp = await fetchWithTimeout(url)
     if (!resp.ok) {
       throw new AppError(502, 'UPSTREAM_ERROR', 'Google Places 服務回應異常')
     }

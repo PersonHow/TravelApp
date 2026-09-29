@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { aiPlanController } from '../controllers/aiPlanController'
+import { expenseController } from '../controllers/expenseController'
 import { hotelController } from '../controllers/hotelController'
 import { packingItemController } from '../controllers/packingItemController'
 import { phraseController } from '../controllers/phraseController'
@@ -38,6 +39,7 @@ tripsRouter.delete('/:id/activities/:activityId', asyncHandler(tripDayController
 tripsRouter.post('/:id/hotels', asyncHandler(hotelController.create)) // 新增飯店
 tripsRouter.put('/:id/hotels/:hotelId', asyncHandler(hotelController.update)) // 更新飯店
 tripsRouter.delete('/:id/hotels/:hotelId', asyncHandler(hotelController.remove)) // 刪除飯店
+tripsRouter.get('/:id/hotels/:hotelId/transit-route', asyncHandler(hotelController.transitRoute)) // 查抵達飯店的大眾運輸路線
 
 // 行程航班（巢狀資源；與 /api/flights/search 第三方查詢不同）
 tripsRouter.post('/:id/flights', asyncHandler(tripFlightController.create)) // 新增航班
@@ -51,6 +53,11 @@ tripsRouter.post('/:id/ai-plan/apply', asyncHandler(aiPlanController.apply)) // 
 // 旅遊短句（AI 生成；獨立端點，不含在 GET /:id）
 tripsRouter.get('/:id/phrases', asyncHandler(phraseController.list)) // 短句列表
 tripsRouter.post('/:id/phrases/generate', asyncHandler(phraseController.generate)) // AI 生成（重生成會先清舊的）
+
+// 記帳（巢狀資源；列表已含在 GET /:id 的 expenses）
+tripsRouter.post('/:id/expenses', asyncHandler(expenseController.create)) // 新增帳目
+tripsRouter.put('/:id/expenses/:expenseId', asyncHandler(expenseController.update)) // 更新帳目
+tripsRouter.delete('/:id/expenses/:expenseId', asyncHandler(expenseController.remove)) // 刪除帳目
 
 // 行李清單（巢狀資源；列表已含在 GET /:id 的 packingItems）
 tripsRouter.post('/:id/packing', asyncHandler(packingItemController.create)) // 新增項目

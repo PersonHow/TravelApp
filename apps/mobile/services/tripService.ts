@@ -2,19 +2,23 @@
 import { apiFetch } from './api'
 import type {
   CreateDayActivityPayload,
+  CreateExpensePayload,
   CreateFlightPayload,
   CreatePackingItemPayload,
   CreateTripPayload,
   CreateHotelPayload,
   CreateTripDayPayload,
   DayActivity,
+  Expense,
   Flight,
   Hotel,
   PackingItem,
+  TransitRoute,
   TripDay,
   TripDetail,
   TripSummary,
   UpdateDayActivityPayload,
+  UpdateExpensePayload,
   UpdateFlightPayload,
   UpdateHotelPayload,
   UpdatePackingItemPayload,
@@ -92,6 +96,13 @@ export const tripService = {
     })
   },
 
+  // 查「出發地 → 飯店」的大眾運輸路線（Google Routes；查無路線回 null）
+  getHotelTransitRoute(tripId: string, hotelId: string, origin: string) {
+    return apiFetch<TransitRoute | null>(
+      `/api/trips/${tripId}/hotels/${hotelId}/transit-route?origin=${encodeURIComponent(origin)}`,
+    )
+  },
+
   removeHotel(tripId: string, hotelId: string) {
     return apiFetch<{ id: string }>(`/api/trips/${tripId}/hotels/${hotelId}`, {
       method: 'DELETE',
@@ -112,6 +123,24 @@ export const tripService = {
 
   removeFlight(tripId: string, flightId: string) {
     return apiFetch<{ id: string }>(`/api/trips/${tripId}/flights/${flightId}`, {
+      method: 'DELETE',
+    })
+  },
+
+  // ─── 記帳 ───
+  createExpense(tripId: string, payload: CreateExpensePayload) {
+    return apiFetch<Expense>(`/api/trips/${tripId}/expenses`, { method: 'POST', body: payload })
+  },
+
+  updateExpense(tripId: string, expenseId: string, payload: UpdateExpensePayload) {
+    return apiFetch<Expense>(`/api/trips/${tripId}/expenses/${expenseId}`, {
+      method: 'PUT',
+      body: payload,
+    })
+  },
+
+  removeExpense(tripId: string, expenseId: string) {
+    return apiFetch<{ id: string }>(`/api/trips/${tripId}/expenses/${expenseId}`, {
       method: 'DELETE',
     })
   },

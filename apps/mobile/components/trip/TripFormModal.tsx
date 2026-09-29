@@ -8,6 +8,7 @@ import { DateField } from '@/components/common/DateField'
 import { ApiError } from '@/services/api'
 import { familyService } from '@/services/familyService'
 import { tripService } from '@/services/tripService'
+import { useAuthStore } from '@/store/useAuthStore'
 import { useTripStore } from '@/store/useTripStore'
 import { parseDateTime, toDateInput } from '@/utils/format'
 import type { FamilyWithMembers, TripSummary } from '@/types/api'
@@ -31,6 +32,7 @@ export function TripFormModal({
   onDeleted,
 }: TripFormModalProps) {
   const { loadTrips, loadDetail, removeTrip } = useTripStore()
+  const userId = useAuthStore((s) => s.user?.id)
 
   const [title, setTitle] = useState('')
   const [destination, setDestination] = useState('')
@@ -56,12 +58,16 @@ export function TripFormModal({
       familyService
         .list()
         .then((list) => {
-          setFamilies(list)
-          setFamilyId(list[0]?.id ?? null)
+          const manageable = list.filter((family) => {
+            const role = family.members.find((member) => member.userId === userId)?.role
+            return role === 'OWNER' || role === 'ADMIN'
+          })
+          setFamilies(manageable)
+          setFamilyId(manageable[0]?.id ?? null)
         })
         .catch((e) => setError(e instanceof ApiError ? e.message : '無法載入家庭列表'))
     }
-  }, [visible, trip])
+  }, [visible, trip, userId])
 
   async function handleSubmit() {
     setError(null)

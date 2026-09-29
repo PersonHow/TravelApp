@@ -1,45 +1,75 @@
 import type { Request, Response } from 'express'
+import { z } from 'zod'
 import { tripDayService } from '../services/tripDayService'
-import { AppError } from '../utils/AppError'
+import {
+  coordinatePair,
+  dateValue,
+  nonEmptyUpdate,
+  nonNegativeInt,
+  nullableText,
+  optionalText,
+  parseInput,
+  trimmedString,
+} from '../utils/validation'
 
-// 把 body 的日期欄位轉成 Date：沒傳 = 不更新（undefined）、傳 null = 清空
-function toDate(value: unknown): Date | null | undefined {
-  if (value === undefined) return undefined
-  if (value === null) return null
-  const d = new Date(value as string)
-  if (Number.isNaN(d.getTime())) throw AppError.badRequest('日期格式錯誤')
-  return d
+const activityType = z.enum(['spot', 'food', 'shop', 'move'])
+const dayNumber = z
+  .number({ invalid_type_error: 'dayNumber 必須是數字' })
+  .int('dayNumber 必須是整數')
+  .positive('dayNumber 必須大於 0')
+
+const createDaySchema = z
+  .object({ date: dateValue('date'), dayNumber, theme: optionalText('theme', 200) })
+  .strict('包含不支援的欄位')
+
+const updateDaySchema = nonEmptyUpdate({
+  date: dateValue('date').optional(),
+  dayNumber: dayNumber.optional(),
+  theme: nullableText('theme', 200),
+})
+
+const activityFields = {
+  title: trimmedString('title').optional(),
+  startTime: dateValue('startTime').optional().nullable(),
+  endTime: dateValue('endTime').optional().nullable(),
+  note: nullableText('note'),
+  order: nonNegativeInt('order').optional(),
+  type: activityType.optional().nullable(),
+  place: nullableText('place', 300),
+  hours: nullableText('hours', 100),
+  price: nonNegativeInt('price').optional().nullable(),
+  placeId: nullableText('placeId', 300),
+  ...coordinatePair,
 }
+
+function hasCoordinatePair(value: { lat?: number | null; lng?: number | null }) {
+  return (value.lat == null) === (value.lng == null)
+}
+
+const createActivitySchema = z
+  .object({ ...activityFields, title: trimmedString('title') })
+  .strict('包含不支援的欄位')
+  .refine(hasCoordinatePair, 'lat 與 lng 必須一起提供')
+
+const updateActivitySchema = z
+  .object({ ...activityFields, tripDayId: trimmedString('tripDayId', 100).optional() })
+  .strict('包含不支援的欄位')
+  .refine((value) => Object.keys(value).length > 0, '至少要提供一個更新欄位')
+  .refine(hasCoordinatePair, 'lat 與 lng 必須一起提供')
 
 // 行程日與每日活動控制器
 export const tripDayController = {
   // POST /api/trips/:id/days
   async createDay(req: Request, res: Response) {
-    const { date, dayNumber, theme } = req.body ?? {}
-    if (!date || dayNumber === undefined) {
-      throw AppError.badRequest('date、dayNumber 為必填')
-    }
-    const day = await tripDayService.createDay(
-      req.params.id,
-      { date: toDate(date)!, dayNumber: Number(dayNumber), theme },
-      req.userId!,
-    )
+    const input = parseInput(createDaySchema, req.body)
+    const day = await tripDayService.createDay(req.params.id, input, req.userId!)
     res.status(201).json({ success: true, data: day })
   },
 
   // PUT /api/trips/:id/days/:dayId
   async updateDay(req: Request, res: Response) {
-    const { date, dayNumber, theme } = req.body ?? {}
-    const day = await tripDayService.updateDay(
-      req.params.id,
-      req.params.dayId,
-      {
-        date: toDate(date) ?? undefined,
-        dayNumber: dayNumber === undefined ? undefined : Number(dayNumber),
-        theme,
-      },
-      req.userId!,
-    )
+    const input = parseInput(updateDaySchema, req.body)
+    const day = await tripDayService.updateDay(req.params.id, req.params.dayId, input, req.userId!)
     res.json({ success: true, data: day })
   },
 
@@ -51,25 +81,22 @@ export const tripDayController = {
 
   // POST /api/trips/:id/days/:dayId/activities
   async createActivity(req: Request, res: Response) {
-    const { title, startTime, endTime, note, order, type, place, hours, price, placeId, lat, lng } =
-      req.body ?? {}
-    if (!title) throw AppError.badRequest('title 為必填')
+    const input = parseInput(createActivitySchema, req.body)
     const activity = await tripDayService.createActivity(
       req.params.id,
       req.params.dayId,
       {
-        title,
-        startTime: toDate(startTime) ?? undefined,
-        endTime: toDate(endTime) ?? undefined,
-        note,
-        order,
-        type,
-        place,
-        hours,
-        price,
-        placeId,
-        lat,
-        lng,
+        ...input,
+        startTime: input.startTime ?? undefined,
+        endTime: input.endTime ?? undefined,
+        note: input.note ?? undefined,
+        type: input.type ?? undefined,
+        place: input.place ?? undefined,
+        hours: input.hours ?? undefined,
+        price: input.price ?? undefined,
+        placeId: input.placeId ?? undefined,
+        lat: input.lat ?? undefined,
+        lng: input.lng ?? undefined,
       },
       req.userId!,
     )
@@ -78,39 +105,11 @@ export const tripDayController = {
 
   // PUT /api/trips/:id/activities/:activityId
   async updateActivity(req: Request, res: Response) {
-    const {
-      title,
-      startTime,
-      endTime,
-      note,
-      order,
-      type,
-      place,
-      hours,
-      price,
-      placeId,
-      lat,
-      lng,
-      tripDayId,
-    } = req.body ?? {}
+    const input = parseInput(updateActivitySchema, req.body)
     const activity = await tripDayService.updateActivity(
       req.params.id,
       req.params.activityId,
-      {
-        title,
-        startTime: toDate(startTime),
-        endTime: toDate(endTime),
-        note,
-        order,
-        type,
-        place,
-        hours,
-        price,
-        placeId,
-        lat,
-        lng,
-        tripDayId,
-      },
+      input,
       req.userId!,
     )
     res.json({ success: true, data: activity })

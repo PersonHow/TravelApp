@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-nativ
 import { UserPlus, Users } from 'lucide-react-native'
 import { ApiError } from '@/services/api'
 import { familyService } from '@/services/familyService'
+import { useAuthStore } from '@/store/useAuthStore'
 import type { FamilyWithMembers } from '@/types/api'
 
 const ROLE_LABEL: Record<string, string> = {
@@ -13,6 +14,7 @@ const ROLE_LABEL: Record<string, string> = {
 }
 
 export function FamilyManager() {
+  const userId = useAuthStore((s) => s.user?.id)
   const [families, setFamilies] = useState<FamilyWithMembers[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,16 +47,26 @@ export function FamilyManager() {
   return (
     <View style={{ gap: 12 }}>
       {families.map((f) => (
-        <FamilyCard key={f.id} family={f} onChanged={load} />
+        <FamilyCard key={f.id} family={f} userId={userId} onChanged={load} />
       ))}
     </View>
   )
 }
 
-function FamilyCard({ family, onChanged }: { family: FamilyWithMembers; onChanged: () => void }) {
+function FamilyCard({
+  family,
+  userId,
+  onChanged,
+}: {
+  family: FamilyWithMembers
+  userId?: string
+  onChanged: () => void
+}) {
   const [email, setEmail] = useState('')
   const [inviting, setInviting] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
+  const role = family.members.find((member) => member.userId === userId)?.role
+  const canManage = role === 'OWNER' || role === 'ADMIN'
 
   async function handleInvite() {
     const target = email.trim()
@@ -106,31 +118,33 @@ function FamilyCard({ family, onChanged }: { family: FamilyWithMembers; onChange
         </View>
       ))}
 
-      {/* email 邀請 */}
-      <View className="flex-row items-center gap-2 px-4 py-2.5 border-t border-line dark:border-dark-line">
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          onSubmitEditing={handleInvite}
-          placeholder="輸入 email 邀請成員"
-          placeholderTextColor="#8c89a8"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          className="flex-1 text-ink dark:text-dark-ink text-[13.5px] py-1.5"
-        />
-        {inviting ? (
-          <ActivityIndicator size="small" color="#6c7bd6" />
-        ) : (
-          <Pressable
-            onPress={handleInvite}
-            className="flex-row items-center gap-1 bg-accent dark:bg-dark-accent rounded-full px-3 py-1.5 active:opacity-80"
-          >
-            <UserPlus size={12} color="#fff" />
-            <Text className="text-white text-xs font-bold">邀請</Text>
-          </Pressable>
-        )}
-      </View>
-      {message && (
+      {/* email 邀請：只有 OWNER / ADMIN 顯示 */}
+      {canManage && (
+        <View className="flex-row items-center gap-2 px-4 py-2.5 border-t border-line dark:border-dark-line">
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            onSubmitEditing={handleInvite}
+            placeholder="輸入 email 邀請成員"
+            placeholderTextColor="#8c89a8"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            className="flex-1 text-ink dark:text-dark-ink text-[13.5px] py-1.5"
+          />
+          {inviting ? (
+            <ActivityIndicator size="small" color="#6c7bd6" />
+          ) : (
+            <Pressable
+              onPress={handleInvite}
+              className="flex-row items-center gap-1 bg-accent dark:bg-dark-accent rounded-full px-3 py-1.5 active:opacity-80"
+            >
+              <UserPlus size={12} color="#fff" />
+              <Text className="text-white text-xs font-bold">邀請</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
+      {canManage && message && (
         <Text
           className={`text-[12px] px-4 pb-3 ${message.ok ? 'text-[#2bb673]' : 'text-accent-2'}`}
         >

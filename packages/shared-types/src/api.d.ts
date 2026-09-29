@@ -1,5 +1,5 @@
 // API 請求／回應型別（前後端共用的合約）
-import type { ActivityType, User } from './models'
+import type { ActivityType, ExpenseCategory, User } from './models'
 
 // 統一回應格式：{ success: true, data } 或 { success: false, error }
 export interface ApiSuccess<T> {
@@ -102,6 +102,9 @@ export interface CreateHotelPayload {
   lat?: number
   lng?: number
   bookingRef?: string
+  roomInfo?: string
+  roomNumber?: string
+  accessNote?: string
 }
 
 export interface UpdateHotelPayload {
@@ -112,6 +115,9 @@ export interface UpdateHotelPayload {
   lat?: number | null
   lng?: number | null
   bookingRef?: string | null
+  roomInfo?: string | null
+  roomNumber?: string | null
+  accessNote?: string | null
 }
 
 export interface CreateFlightPayload {
@@ -136,6 +142,18 @@ export interface UpdateFlightPayload {
   accessNote?: string | null
 }
 
+// GET /api/flights/search 的單筆結果（來自 AviationStack，未存 DB）
+export interface FlightSearchResult {
+  flightNumber: string
+  airline: string | null
+  departureAirport: string | null
+  arrivalAirport: string | null
+  departureTime: string | null // ISO；免費方案只有表定時間
+  arrivalTime: string | null
+  aircraft: string | null
+  status: string | null // scheduled / active / landed / cancelled...
+}
+
 // GET /api/attractions/search 的單筆結果（來自 Google Places，未存 DB）
 export interface AttractionSearchResult {
   placeId: string
@@ -144,6 +162,25 @@ export interface AttractionSearchResult {
   lat: number | null
   lng: number | null
   category: string | null
+}
+
+// GET /api/trips/:id/hotels/:hotelId/transit-route 的結果（來自 Google Routes API，未存 DB）
+export interface TransitStep {
+  // WALK＝步行、TRANSIT＝搭車
+  mode: 'WALK' | 'TRANSIT'
+  // 步行:導航指示文字；搭車:路線名（如「南海空港線」）
+  instruction: string
+  durationMinutes: number
+  // 以下僅搭車有值
+  headsign: string | null // 行駛方向（如「往難波」）
+  departureStop: string | null
+  arrivalStop: string | null
+  stopCount: number | null
+}
+
+export interface TransitRoute {
+  durationMinutes: number
+  steps: TransitStep[]
 }
 
 // ─── AI 規劃行程（兩段式：生成草稿 → 確認套用）───
@@ -203,4 +240,22 @@ export interface CreatePackingItemPayload {
 export interface UpdatePackingItemPayload {
   name?: string
   checked?: boolean
+}
+
+export interface CreateExpensePayload {
+  title: string
+  amount: number
+  category: ExpenseCategory
+  date: string
+  payerId?: string
+  note?: string
+}
+
+export interface UpdateExpensePayload {
+  title?: string
+  amount?: number
+  category?: ExpenseCategory
+  date?: string
+  payerId?: string | null
+  note?: string | null
 }

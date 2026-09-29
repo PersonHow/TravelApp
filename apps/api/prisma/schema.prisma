@@ -28,6 +28,7 @@ model User {
   updatedAt    DateTime @updatedAt
 
   familyMembers FamilyMember[]
+  paidExpenses  Expense[]
 }
 
 // 家庭群組
@@ -57,19 +58,19 @@ model FamilyMember {
 
 // 行程
 model Trip {
-  id        String   @id @default(cuid())
-  title     String
-  startDate DateTime
-  endDate   DateTime
-  familyId  String
+  id          String   @id @default(cuid())
+  title       String
+  startDate   DateTime
+  endDate     DateTime
+  familyId    String
   // 目的地(如「日本・東京」),給 AI 判斷當地語言與地區,生成短句/排行程用
   destination String?
   // 幣別與匯率(設計檔顯示「¥600 ≈ NT$126」需要這兩個欄位)
-  currency  String?  // ISO 4217 例如 "JPY"、"KRW"
-  symbol    String?  // 顯示符號 例如 "¥"、"₩"
-  fx        Float?   // 1 currency ≈ X TWD,手動填(之後可接匯率 API)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  currency    String? // ISO 4217 例如 "JPY"、"KRW"
+  symbol      String? // 顯示符號 例如 "¥"、"₩"
+  fx          Float? // 1 currency ≈ X TWD,手動填(之後可接匯率 API)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   family          Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
   tripAttractions TripAttraction[]
@@ -78,9 +79,11 @@ model Trip {
   flights         Flight[]
   packingItems    PackingItem[]
   phrases         Phrase[]
+  expenses        Expense[]
 }
 
-// 景點（可被多個行程共用，資料可來自 Google Places）
+// 景點目錄（可被多個行程收藏，資料可來自 Google Places）
+// 注意：這是「尚未排入日期的收藏／wishlist」資料；實際排程與當時的地點快照以 DayActivity 為準。
 model Attraction {
   id        String   @id @default(cuid())
   name      String
@@ -96,7 +99,7 @@ model Attraction {
   dayActivities   DayActivity[]
 }
 
-// 行程與景點的多對多關聯（join table）
+// 行程與「未排程景點收藏」的多對多關聯（join table）
 model TripAttraction {
   id           String   @id @default(cuid())
   tripId       String
@@ -126,7 +129,8 @@ model TripDay {
   @@unique([tripId, dayNumber])
 }
 
-// 每日活動
+// 每日活動：已排入某一天的唯一資料來源。
+// placeId/lat/lng 是排程當下快照，避免外部 Places 資料變動後改寫既有旅程紀錄。
 model DayActivity {
   id           String    @id @default(cuid())
   tripDayId    String
@@ -162,6 +166,9 @@ model Hotel {
   checkIn    DateTime
   checkOut   DateTime
   bookingRef String? // 訂房代號
+  roomInfo   String? // 房型與間數（自由文字，如「雙床房 ×2」）
+  roomNumber String? // 房號（入住後填，如「1204、1206」）
+  accessNote String? // 如何抵達飯店（自由文字，同 Flight.accessNote 慣例）
   createdAt  DateTime @default(now())
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
@@ -196,6 +203,22 @@ model Phrase {
   createdAt DateTime @default(now())
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+// 記帳(跟著 Trip、cascade 刪除;金額單位為 Trip.currency,整數,同 DayActivity.price 慣例)
+model Expense {
+  id        String   @id @default(cuid())
+  tripId    String
+  title     String
+  amount    Int
+  category  String // "food" | "transport" | "ticket" | "shopping" | "lodging" | "other"
+  date      DateTime
+  payerId   String? // 誰付的(可不填;使用者被刪除時保留帳目、payerId 清空)
+  note      String?
+  createdAt DateTime @default(now())
+
+  trip  Trip  @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  payer User? @relation(fields: [payerId], references: [id], onDelete: SetNull)
 }
 
 // 行李清單項目(跟著 Trip,在航班詳細頁顯示與勾選)

@@ -91,9 +91,17 @@ export interface Hotel {
   tripId: string
   name: string
   address: string | null
+  lat: number | null
+  lng: number | null
   checkIn: string
   checkOut: string
   bookingRef: string | null
+  // 房型與間數（自由文字，如「雙床房 ×2」）
+  roomInfo: string | null
+  // 房號（入住後填，如「1204、1206」）
+  roomNumber: string | null
+  // 如何抵達飯店（自由文字，同 Flight.accessNote 慣例）
+  accessNote: string | null
 }
 
 export interface Attraction {
@@ -129,6 +137,23 @@ export interface Phrase {
   order: number
 }
 
+// 記帳分類（前端 ChipSelect 與後端驗證共用）
+export type ExpenseCategory = 'food' | 'transport' | 'ticket' | 'shopping' | 'lodging' | 'other'
+
+// 記帳（跟著 Trip；金額單位為 Trip.currency）
+export interface Expense {
+  id: string
+  tripId: string
+  title: string
+  amount: number
+  category: ExpenseCategory
+  date: string
+  payerId: string | null
+  note: string | null
+  // 誰付的（帶基本資料給列表顯示；成員被刪除時為 null）
+  payer: User | null
+}
+
 export interface TripSummary {
   id: string
   title: string
@@ -147,4 +172,5 @@ export interface TripDetail extends TripSummary {
   hotels: Hotel[]
   tripAttractions: TripAttraction[]
   packingItems: PackingItem[]
+  expenses: Expense[]
 }

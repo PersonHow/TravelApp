@@ -1,4 +1,4 @@
-// 地圖選點：點地圖放 pin、確認後回傳座標（原生限定，Web 不顯示入口）
+// 地圖選點：點地圖放 pin、確認後回傳座標（原生一律可用；Web 需內嵌地圖金鑰，入口由呼叫端控制）
 import { useEffect, useState } from 'react'
 import { Modal, Pressable, Text, View } from 'react-native'
 import { X } from 'lucide-react-native'

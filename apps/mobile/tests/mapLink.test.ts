@@ -1,4 +1,4 @@
-import { googleMapsUrl } from '../utils/mapLink'
+import { googleMapsDirectionsUrl, googleMapsUrl } from '../utils/mapLink'
 
 // Google Maps 深層連結：有座標用座標（可帶 place_id），沒座標退回文字搜尋
 
@@ -37,6 +37,40 @@ describe('googleMapsUrl', () => {
   it('什麼都沒有：回 null（不顯示按鈕）', () => {
     expect(
       googleMapsUrl({ title: '', place: null, lat: null, lng: null, placeId: null }),
+    ).toBeNull()
+  })
+})
+
+describe('googleMapsDirectionsUrl（大眾運輸導航）', () => {
+  it('有座標：destination 用座標、travelmode=transit', () => {
+    const url = googleMapsDirectionsUrl({
+      title: '難波東方酒店',
+      place: null,
+      lat: 34.667,
+      lng: 135.5015,
+      placeId: null,
+    })
+    expect(url).toBe(
+      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent('34.667,135.5015')}&travelmode=transit`,
+    )
+  })
+
+  it('沒座標：destination 用「名稱＋地點」文字', () => {
+    const url = googleMapsDirectionsUrl({
+      title: '難波東方酒店',
+      place: '難波站 徒步 5 分',
+      lat: null,
+      lng: null,
+      placeId: null,
+    })
+    expect(url).toBe(
+      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent('難波東方酒店 難波站 徒步 5 分')}&travelmode=transit`,
+    )
+  })
+
+  it('什麼都沒有：回 null', () => {
+    expect(
+      googleMapsDirectionsUrl({ title: '', place: null, lat: null, lng: null, placeId: null }),
     ).toBeNull()
   })
 })

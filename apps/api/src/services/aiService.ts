@@ -31,7 +31,7 @@ export const aiService = {
     }
     if (apiKey === 'mock') return params.mock
 
-    const client = new Anthropic({ apiKey })
+    const client = new Anthropic({ apiKey, timeout: 60_000, maxRetries: 2 })
     try {
       const response = await client.messages.create({
         // 用 || 而非 ??：docker-compose 未設定時會傳進空字串，也要退回預設模型

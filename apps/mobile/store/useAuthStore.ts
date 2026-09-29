@@ -2,7 +2,32 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import * as SecureStore from 'expo-secure-store'
+import { Platform } from 'react-native'
 import type { User } from '@/types/api'
+
+// Web 沒有 SecureStore；原生改存 Keychain / Keystore，並在第一次讀取時搬移舊 AsyncStorage session。
+const authStorage =
+  Platform.OS === 'web'
+    ? AsyncStorage
+    : {
+        async getItem(name: string) {
+          const secureValue = await SecureStore.getItemAsync(name)
+          if (secureValue) return secureValue
+          const legacyValue = await AsyncStorage.getItem(name)
+          if (legacyValue) {
+            await SecureStore.setItemAsync(name, legacyValue)
+            await AsyncStorage.removeItem(name)
+          }
+          return legacyValue
+        },
+        setItem(name: string, value: string) {
+          return SecureStore.setItemAsync(name, value)
+        },
+        removeItem(name: string) {
+          return SecureStore.deleteItemAsync(name)
+        },
+      }
 
 interface AuthState {
   accessToken: string | null
@@ -30,7 +55,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'travel-app-auth',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => authStorage),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated()
       },

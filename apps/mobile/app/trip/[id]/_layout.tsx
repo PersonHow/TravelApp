@@ -13,6 +13,7 @@ import {
   MapPin,
   Navigation,
   MessageCircle,
+  Wallet,
 } from 'lucide-react-native'
 import { useIsDesktop } from '@/hooks/useIsDesktop'
 import { useThemeStore } from '@/store/useThemeStore'
@@ -128,6 +129,10 @@ export default function TripLayout() {
             title: '交通住宿',
             tabBarIcon: ({ color }) => <Navigation size={20} color={color} />,
           }}
+        />
+        <Tabs.Screen
+          name="expenses"
+          options={{ title: '記帳', tabBarIcon: ({ color }) => <Wallet size={20} color={color} /> }}
         />
         <Tabs.Screen
           name="phrases"

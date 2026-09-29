@@ -26,6 +26,7 @@ import {
   MapPin,
   Navigation,
   MessageCircle,
+  Wallet,
   Sun,
   Moon,
   LogOut,
@@ -39,7 +40,7 @@ import { formatDateRange } from '@/utils/format'
 
 // nav 項目：href 依目前旅程 id 組出來
 const NAV_ITEMS: {
-  suffix: '' | '/schedule' | '/attractions' | '/map' | '/transport' | '/phrases'
+  suffix: '' | '/schedule' | '/attractions' | '/map' | '/transport' | '/expenses' | '/phrases'
   label: string
   Icon: LucideIcon
 }[] = [
@@ -48,6 +49,7 @@ const NAV_ITEMS: {
   { suffix: '/attractions', label: '景點', Icon: MapPin },
   { suffix: '/map', label: '地圖', Icon: Map },
   { suffix: '/transport', label: '交通住宿', Icon: Navigation },
+  { suffix: '/expenses', label: '記帳', Icon: Wallet },
   { suffix: '/phrases', label: '用語', Icon: MessageCircle },
 ]
 

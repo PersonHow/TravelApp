@@ -128,6 +128,9 @@ export function ActivityFormModal({
       ? { lat: anyCoordActivity.lat, lng: anyCoordActivity.lng }
       : { lat: 35.681236, lng: 139.767125 }
 
+  // 地圖選點：原生一律可用；Web 要有 Maps JavaScript API 金鑰（內嵌地圖）才開放
+  const canPickOnMap = Platform.OS !== 'web' || !!process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+
   // 開啟 Google 地圖：有座標用座標定位，沒座標用「名稱＋地點」文字搜尋
   const mapUrl = googleMapsUrl({
     title: title.trim(),
@@ -303,10 +306,10 @@ export function ActivityFormModal({
           placeholder="例如：台東区浅草"
         />
 
-        {/* 地圖選點（原生）＋ 開啟地圖（免金鑰 deep link）＋ 移除精確定位 */}
-        {(mapUrl || Platform.OS !== 'web') && (
+        {/* 地圖選點（原生／Web 有金鑰）＋ 開啟地圖（免金鑰 deep link）＋ 移除精確定位 */}
+        {(mapUrl || canPickOnMap) && (
           <View className="flex-row flex-wrap items-center gap-2 -mt-1">
-            {Platform.OS !== 'web' && (
+            {canPickOnMap && (
               <Pressable
                 onPress={() => setPickerOpen(true)}
                 className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border border-line dark:border-dark-line active:opacity-70"
