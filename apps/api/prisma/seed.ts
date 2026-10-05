@@ -4,6 +4,7 @@
 // 可重複執行（先清掉舊的 demo 資料）
 // 執行：npm run seed --workspace @travel-app/api
 
+import '../src/config/loadEnv'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 

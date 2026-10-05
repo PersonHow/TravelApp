@@ -12,6 +12,8 @@ dist/
 build/
 .expo/
 web-build/
+.codex-build/
+.codex-finalizer/
 
 # 系統 / 編輯器
 .DS_Store

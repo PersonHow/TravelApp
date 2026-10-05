@@ -1,4 +1,4 @@
-import 'dotenv/config'
+import './config/loadEnv'
 import { createApp } from './app'
 
 // 後端進入點：啟動 HTTP 伺服器

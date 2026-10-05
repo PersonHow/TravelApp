@@ -10,6 +10,8 @@ Travel App 是 npm workspaces 管理的模組化單體：
 
 資料流固定為：頁面／元件 → mobile service → `apiFetch` → route → controller → domain service → Prisma。
 
+後端設定載入順序固定為：執行環境注入值 → monorepo 根目錄 `.env` → `apps/api/.env`。正式容器只依賴執行環境注入；本機共用的第三方金鑰集中放根目錄，API 子目錄檔案僅用來補足缺少的值。
+
 ## 權限矩陣
 
 | 能力 | OWNER | ADMIN | MEMBER |

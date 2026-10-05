@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import 'dotenv/config'
+import '../src/config/loadEnv'
 import { testDatabaseUrl } from './testDatabaseUrl'
 
 // 整體測試前置：把 Postgres 的 test schema 重置成目前的 prisma schema
@@ -7,7 +7,7 @@ import { testDatabaseUrl } from './testDatabaseUrl'
 export default function setup() {
   if (!process.env.DATABASE_URL) {
     throw new Error(
-      'DATABASE_URL 未設定（apps/api/.env），且測試需要本機 Postgres：docker-compose up -d',
+      'DATABASE_URL 未設定（根目錄或 apps/api/.env），且測試需要本機 Postgres：docker-compose up -d',
     )
   }
   execSync('npx prisma db push --force-reset --skip-generate', {

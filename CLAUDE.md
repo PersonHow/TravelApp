@@ -430,7 +430,7 @@ const useTrip = (id: string): { trip: Trip | null; loading: boolean; error: Erro
 ## 🔐 環境變數
 
 > **分工說明：**
-> - **本機開發**：使用 `.env` 檔管理金鑰（不得 commit 進 git）
+> - **本機開發**：後端優先讀取根目錄 `.env`，缺少的值再由 `apps/api/.env` 補上（不得 commit 進 git）
 > - **正式環境（Cloud Run）**：所有金鑰統一存放在 GCP Secret Manager，啟動時自動注入，不依賴 `.env`
 
 **Frontend（`apps/mobile/.env`）：**
@@ -441,7 +441,7 @@ EXPO_PUBLIC_FIREBASE_API_KEY=xxx
 EXPO_PUBLIC_FIREBASE_PROJECT_ID=xxx
 ```
 
-**Backend（`apps/api/.env`）：**
+**Backend（根目錄 `.env`；`apps/api/.env` 可作本機補充）：**
 ```
 DATABASE_URL=postgresql://USER:PASSWORD@CLOUD_SQL_IP:5432/travel_app?sslmode=require&connection_limit=10
 FIREBASE_SERVICE_ACCOUNT_KEY=xxx
@@ -598,6 +598,8 @@ gcloud run deploy travel-frontend \
 ## 📊 實作進度與待補
 
 **已完成（可運行）**
+- ✅ **環境與建置健檢修復**（2026-10-05）：後端新增統一環境載入器，優先序為 process env → 根目錄 `.env` → `apps/api/.env`，直接啟動與 Docker 不再讀到不同 AviationStack 設定；Metro 改回 Expo workspace 預設，只保留 NativeWind wrapper，Expo Doctor 17/17；`.codex-build`／`.codex-finalizer` 加入忽略清單，root format check 恢復通過；CI 新增格式檢查。後端 86／前端 42、Web／iOS／Android export、production Docker health check 全部通過。
+- ✅ **測試環境修復＋航空 API 契約測試**（2026-09-29）：Expo 51／Reanimated 3 相容需求下將 NativeWind 固定為 `4.1.23`、直接宣告 `react-native-css-interop@0.1.22`，Jest 略過不需要的 NativeWind 樣式轉換；前端 42 項測試與 Web export 通過。航空搜尋新增 AviationStack 真實回應正規化、HTTP／JSON 錯誤的代理測試，後端共 86 項通過；新增 `npm run verify:flight-api --workspace @travel-app/api -- BR198`，供填入真實金鑰後手動驗證且不消耗日常測試額度。
 - ✅ **首頁 DAY 卡片改版＋交通住宿分欄＋飯店房型/房號/座標**（2026-08-25）：首頁 DAY 規劃改直式卡片橫向滑動（`DayCard`＋`DayCarousel`，桌面左右箭頭翻頁、放不下才顯示；日期等於今天的卡片亮燈＋「今天」徽章並自動捲到可見，`utils/format.ts` 的 `isToday`/`hotelNights` 有測試）。交通住宿頁桌面改 master-detail（左側縮小清單＋右側詳細面板，航班詳細內容抽成共用 `FlightDetail` 給詳細頁與面板共用；手機維持大卡片不變）。Hotel 加 `roomInfo`（房型/間數）與 `roomNumber`（房號）欄位（migrations `20260825071952`、`20260825074535`），飯店表單加 Places 搜尋（帶入名稱/地址/座標，與活動表單同一套後端）與「在 Google 地圖開啟」deep link；飯店卡顯示晚數（check-in/out 換算，不存欄位）；順手修正 shared-types 的 `Hotel` 漏掉 `lat`/`lng`。後端測試 78／前端 39。**地圖 tab 沒東西的原因**：只顯示有座標的活動，seed 示範資料無座標＋Web 內嵌地圖未做（降級清單）
 - ✅ **航班搜尋串接＋記帳功能**（2026-08-18）：航班搜尋後端改回正規化結果（`FlightSearchResult`，AviationStack 原始欄位收斂成前端可直接帶入的形狀）、支援 `AVIATION_STACK_API_KEY=mock` 替身模式（同 aiService 慣例，目前 `.env` 就是填 mock）、加 10 分鐘同航班快取（免費額度僅 100 次／月）、`flightNumber` 必填回 400；`FlightFormModal` 航班編號欄位加搜尋鈕（按鈕觸發，點結果帶入編號/航空/機場/時間/機型）。記帳：新資料表 `Expense`（migration `20260818084357`，金額整數同 price 慣例、`payerId` 可選且須為家庭成員、使用者刪除時 SetNull 保留帳目）、巢狀端點 `POST/PUT/DELETE /api/trips/:id/expenses(/:expenseId)`（列表含在 trip detail 的 `expenses`，含 payer 基本資料）、新「記帳」tab `trip/[id]/expenses.tsx`（總支出＋≈台幣＋付款人小計、依日期分組、`ExpenseFormModal` 增刪改、付款人選項取自家庭成員）。後端測試 78（新增記帳 9＋航班搜尋 4）／前端 34；seed 的關西行程含 4 筆示範帳目（要重跑 seed 才會出現，會清掉 demo 帳號現有資料）
 - Monorepo 骨架（npm workspaces）+ `apps/api` + `apps/mobile` + `packages/shared-types`
@@ -626,7 +628,7 @@ gcloud run deploy travel-frontend \
 - ✅ **email 邀請成員＋家庭管理 UI**：後端 `addMemberByEmail`（找不到 email 回 404、重複回 409），`GET/POST /api/families` 的成員帶 user 基本資料；前端「我的」頁 `FamilyManager`（成員列表＋角色徽章＋email 邀請）。多層動態路由的 `router.push` 要用**物件形式**（`{ pathname: '/trip/[id]/flight/[flightId]', params }`），字串模板過不了 typed routes
 
 **待補（依優先序）**
-1. AviationStack 真實金鑰尚未申請（目前 `.env` 填 `mock` 回替身資料；申請後直接替換金鑰即可，前端串接已完成）
+1. AviationStack 真實金鑰尚未申請（目前 `.env` 填 `mock` 回替身資料；前後端串接與代理契約測試已完成。申請後替換金鑰，再執行 `npm run verify:flight-api --workspace @travel-app/api -- BR198` 做一次現場驗證）
 2. **地圖與景點牆改善**（2026-08-07 使用者回饋；2026-08-10 定案「地圖選點」與「店名搜尋帶入」**兩種都要**，因為要開放手機操作；已規劃未動工）：
    - ✅ 第一步（地基，2026-08-10 完成）：`DayActivity` 加 `placeId`/`lat`/`lng`（migration `20260810034814`；搜尋帶入時一併存座標、可「移除精確定位」），活動表單加「在 Google 地圖開啟」deep link（`utils/mapLink.ts`，有座標用座標＋place_id、沒座標退回名稱＋地點文字搜尋，**免金鑰零費用**）；景點牆 `attractions.tsx` 改依 DAY 分組（每天一段標題＋便利貼牆）
    - ✅ 第二步（內嵌地圖，2026-08-10 完成）：`react-native-maps@1.14.0`（Expo Go 可直接跑：iOS Apple 圖層／Android Google 圖層；正式 build 金鑰讀 `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`，已寫進 `app.config.ts`，**金鑰尚未申請**）；`components/map/MapCanvas.native.tsx` + `MapCanvas.tsx`（Metro 平台分流，Web 降級提示，**兩份 props 介面要同步**）；`LocationPickerModal` 地圖選點（點地圖放 pin → 回填座標，手動點的沒有 placeId；與 FormSheet 互斥開啟）；活動表單「地圖選點」按鈕（原生限定）；新增「地圖」tab（`trip/[id]/map.tsx`，第 4 個 tab）：全部帶座標活動的 pin 依 DAY 上色＋圖例，點 pin 標題跳 Google 地圖，Web 降級成清單
@@ -651,4 +653,4 @@ gcloud run deploy travel-frontend \
 
 ---
 
-*最後更新：2026-08-25 完成 Web 內嵌地圖（Maps JavaScript API 動態載入、地圖 tab＋地圖選點在 Web 開放，金鑰填入 mobile .env）＋首頁 DAY 卡片橫滑改版（含今天亮燈）＋交通住宿桌面 master-detail＋飯店房型/房號/座標欄位（Places 搜尋帶入；後端 78／前端 39）；2026-08-18 完成航班搜尋串接＋記帳功能（AviationStack 正規化＋mock＋快取、FlightFormModal 搜尋帶入；Expense 資料表＋巢狀端點＋記帳 tab；後端 78／前端 34）；2026-08-12 完成品質補強（ESLint＋Prettier＋root 腳本；前端測試遷 jest-expo 並新增元件測試；後端 64／前端 34）；2026-08-10 完成地圖第一＋二步（活動座標欄位＋Google 地圖 deep link＋景點牆 DAY 分組；react-native-maps 內嵌地圖＋地圖選點＋地圖 tab，Web 降級；後端 64／前端 28）；2026-08-07 接通真實 ANTHROPIC_API_KEY（修正 ANTHROPIC_MODEL 空字串 bug、aiService 補錯誤 log）與 Google Places 景點搜尋（金鑰＋zh-TW＋ActivityFormModal 搜尋帶入 UI）；2026-07-24 完成 AI 第二＋三批「AI 規劃行程＋審核專家鏈」（assertRole、兩段式 ai-plan 端點、planTrip/reviewTrip 專家鏈、AiPlanModal 草稿預覽；後端測試 62／前端 24；第四批「即時異動重排」仍待確認事項定案）；2026-07-23 完成 AI 功能第一批「旅遊短句」（Trip.destination＋Phrase model、aiService＋prompts 資料夾、phrases 端點、用語 tab UI、mock 開發流程；後端測試 55／前端 24）；2026-07-16 補上每趟旅程 AI 用量軟上限（暫定台幣 80 元）與 AviationStack 免費額度僅 100 次／月的節流提醒；2026-07-16 於「🤖 AI 功能規劃」追加第四批「即時異動重排」（真正的 function calling / agent 迴圈，新頁面「即時行程」，掛 AviationStack／Places／web search 三個工具，已規劃未動工）；2026-07-15 新增「🤖 AI 功能規劃」章節（Claude API 整合三批：旅遊短句／AI 排行程／審核專家鏈，已規劃未動工）；上一批完成：航班詳細頁＋email 邀請成員（後端測試 47、前端 24）| 如有架構變動請同步更新此文件*
+*最後更新：2026-09-29 修復 Expo 51／NativeWind 相依與 Jest 轉換設定，前端 42 項測試及 Web export 通過；航空搜尋補齊 AviationStack 代理契約測試與真實金鑰驗證指令，後端 86 項測試通過。2026-08-25 完成 Web 內嵌地圖（Maps JavaScript API 動態載入、地圖 tab＋地圖選點在 Web 開放，金鑰填入 mobile .env）＋首頁 DAY 卡片橫滑改版（含今天亮燈）＋交通住宿桌面 master-detail＋飯店房型/房號/座標欄位（Places 搜尋帶入；後端 78／前端 39）；2026-08-18 完成航班搜尋串接＋記帳功能（AviationStack 正規化＋mock＋快取、FlightFormModal 搜尋帶入；Expense 資料表＋巢狀端點＋記帳 tab；後端 78／前端 34）；2026-08-12 完成品質補強（ESLint＋Prettier＋root 腳本；前端測試遷 jest-expo 並新增元件測試；後端 64／前端 34）；2026-08-10 完成地圖第一＋二步（活動座標欄位＋Google 地圖 deep link＋景點牆 DAY 分組；react-native-maps 內嵌地圖＋地圖選點＋地圖 tab，Web 降級；後端 64／前端 28）；2026-08-07 接通真實 ANTHROPIC_API_KEY（修正 ANTHROPIC_MODEL 空字串 bug、aiService 補錯誤 log）與 Google Places 景點搜尋（金鑰＋zh-TW＋ActivityFormModal 搜尋帶入 UI）；2026-07-24 完成 AI 第二＋三批「AI 規劃行程＋審核專家鏈」（assertRole、兩段式 ai-plan 端點、planTrip/reviewTrip 專家鏈、AiPlanModal 草稿預覽；後端測試 62／前端 24；第四批「即時異動重排」仍待確認事項定案）；2026-07-23 完成 AI 功能第一批「旅遊短句」（Trip.destination＋Phrase model、aiService＋prompts 資料夾、phrases 端點、用語 tab UI、mock 開發流程；後端測試 55／前端 24）；2026-07-16 補上每趟旅程 AI 用量軟上限（暫定台幣 80 元）與 AviationStack 免費額度僅 100 次／月的節流提醒；2026-07-16 於「🤖 AI 功能規劃」追加第四批「即時異動重排」（真正的 function calling / agent 迴圈，新頁面「即時行程」，掛 AviationStack／Places／web search 三個工具，已規劃未動工）；2026-07-15 新增「🤖 AI 功能規劃」章節（Claude API 整合三批：旅遊短句／AI 排行程／審核專家鏈，已規劃未動工）；上一批完成：航班詳細頁＋email 邀請成員（後端測試 47、前端 24）| 如有架構變動請同步更新此文件*

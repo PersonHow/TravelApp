@@ -61,12 +61,12 @@ npm run dev --workspace @travel-app/api
 
 ```bash
 cd /Users/tungjenhao/Documents/Claude_Document/TravelApp/apps/mobile
-EXPO_USE_METRO_WORKSPACE_ROOT=1 npx expo start --web
+npx expo start --web
 ```
 
 跑起來自動開 [http://localhost:8081](http://localhost:8081)。
 
-> ⚠️ **一定要加 `EXPO_USE_METRO_WORKSPACE_ROOT=1`** — 不加 monorepo 路徑會錯。
+> Metro 會依 npm workspaces 自動解析 monorepo，不需要額外設定 workspace root。
 
 ### 想跑手機模擬器?
 
@@ -134,13 +134,13 @@ docker-compose down
 ## 常見問題
 
 **Q. Expo 開了瀏覽器但畫面是空白 / 一直 spinner**
-A. 多半是 monorepo metro 路徑沒設好。確認啟動指令有 `EXPO_USE_METRO_WORKSPACE_ROOT=1`。
+A. 先清除 Metro 快取後重啟：`npx expo start --clear --web`。
 
 **Q. 改了 `prisma/schema.prisma` 但 API 還拿到舊型別**
 A. 跑 `npx prisma generate` 再重啟 API。
 
 **Q. API 回 `503 INTEGRATION_NOT_CONFIGURED`**
-A. Google Places / AviationStack 金鑰沒設。在 `apps/api/.env` 補上,或忽略(只是搜尋功能不能用)。
+A. Google Places / AviationStack 金鑰沒設。在 `apps/api/.env` 補上，或忽略（只是搜尋功能不能用）。AviationStack 填入真實金鑰後，可用 `npm run verify:flight-api --workspace @travel-app/api -- BR198` 驗證連線。
 
 **Q. 登入 401 / 403**
 A. JWT 過期(7 天)。清瀏覽器 LocalStorage 或重新登入。

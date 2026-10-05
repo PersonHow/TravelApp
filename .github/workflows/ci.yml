@@ -35,6 +35,7 @@ jobs:
       - run: npm ci
       - run: npm run type-check
       - run: npm run lint
+      - run: npm run format:check
       - run: npm test
       - run: npm audit --omit=dev --workspace @travel-app/api
       - run: docker build -f apps/api/Dockerfile -t travel-app-api:ci .

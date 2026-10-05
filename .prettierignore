@@ -4,6 +4,8 @@ dist
 .expo
 .claude
 coverage
+.codex-build
+.codex-finalizer
 package-lock.json
 apps/mobile/expo-env.d.ts
 apps/api/prisma/migrations

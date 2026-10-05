@@ -1,4 +1,4 @@
-import 'dotenv/config'
+import '../src/config/loadEnv'
 import { afterAll } from 'vitest'
 import { testDatabaseUrl } from './testDatabaseUrl'
 
