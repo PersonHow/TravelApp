@@ -1,7 +1,7 @@
 // 我的：使用者資訊、深色模式、登出（從旅程總覽右上進入）
 import { View, Text, ScrollView, Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useRouter } from 'expo-router'
+import { Link, useRouter } from 'expo-router'
 import { ArrowLeft, LogOut, Moon, Sun } from 'lucide-react-native'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useTripStore } from '@/store/useTripStore'
@@ -81,6 +81,20 @@ export default function ProfileScreen() {
               {dark ? '切換淺色模式' : '切換深色模式'}
             </Text>
           </Pressable>
+          <Link href="/privacy" asChild>
+            <Pressable className="px-4 py-3.5 border-t border-line dark:border-dark-line active:opacity-70">
+              <Text className="text-ink dark:text-dark-ink text-[14.5px] font-semibold">
+                隱私權政策
+              </Text>
+            </Pressable>
+          </Link>
+          <Link href="/data-deletion" asChild>
+            <Pressable className="px-4 py-3.5 border-t border-line dark:border-dark-line active:opacity-70">
+              <Text className="text-ink dark:text-dark-ink text-[14.5px] font-semibold">
+                帳號與資料刪除
+              </Text>
+            </Pressable>
+          </Link>
           <Pressable
             onPress={handleLogout}
             className="flex-row items-center gap-3 px-4 py-3.5 border-t border-line dark:border-dark-line active:opacity-70"

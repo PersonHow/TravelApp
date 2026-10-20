@@ -42,6 +42,7 @@ export interface CreateTripPayload {
   endDate: string
   familyId: string
   destination?: string
+  createDays?: boolean
 }
 
 export interface UpdateTripPayload {

@@ -16,9 +16,6 @@ import { authService } from '@/services/authService'
 import { useAuthStore } from '@/store/useAuthStore'
 import { ApiError } from '@/services/api'
 
-const DEMO_EMAIL = 'demo@travel-app.com'
-const DEMO_PASSWORD = 'demo1234'
-
 export default function LoginScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -38,11 +35,6 @@ export default function LoginScreen() {
     } finally {
       setLoading(false)
     }
-  }
-
-  function fillDemo() {
-    setEmail(DEMO_EMAIL)
-    setPassword(DEMO_PASSWORD)
   }
 
   return (
@@ -116,12 +108,6 @@ export default function LoginScreen() {
                 <Text className="text-white font-bold text-[15px]">登入</Text>
               )}
             </Pressable>
-
-            <Pressable onPress={fillDemo} className="items-center py-2 active:opacity-60">
-              <Text className="text-accent text-[13px] font-semibold underline">
-                填入 demo 帳號
-              </Text>
-            </Pressable>
           </View>
 
           <View className="flex-row justify-center items-center gap-1 mt-8">
@@ -130,6 +116,17 @@ export default function LoginScreen() {
               <Pressable className="active:opacity-60">
                 <Text className="text-accent text-[13px] font-bold">註冊</Text>
               </Pressable>
+            </Link>
+          </View>
+          <View className="flex-row justify-center gap-4 mt-4">
+            <Link href="/privacy" className="text-muted text-[12px]">
+              隱私權政策
+            </Link>
+            <Link href="/terms" className="text-muted text-[12px]">
+              服務條款
+            </Link>
+            <Link href="/contact" className="text-muted text-[12px]">
+              聯絡我們
             </Link>
           </View>
         </View>

@@ -2,7 +2,7 @@
 // 新增模式：載入我的家庭；一個以上可選、一個都沒有時先填家庭名稱一併建立
 // 編輯模式：改名／改日期，可刪除整個行程
 import { useEffect, useState } from 'react'
-import { Text } from 'react-native'
+import { Switch, Text, View } from 'react-native'
 import { ChipSelect, Field, FormSheet } from '@/components/common/FormSheet'
 import { DateField } from '@/components/common/DateField'
 import { ApiError } from '@/services/api'
@@ -41,6 +41,7 @@ export function TripFormModal({
   const [families, setFamilies] = useState<FamilyWithMembers[] | null>(null)
   const [familyId, setFamilyId] = useState<string | null>(null)
   const [newFamilyName, setNewFamilyName] = useState('')
+  const [createDays, setCreateDays] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -52,6 +53,7 @@ export function TripFormModal({
     setStartDate(trip ? toDateInput(trip.startDate) : '')
     setEndDate(trip ? toDateInput(trip.endDate) : '')
     setNewFamilyName('')
+    setCreateDays(true)
     // 新增模式才需要家庭列表
     if (!trip) {
       setFamilies(null)
@@ -116,6 +118,7 @@ export function TripFormModal({
           endDate: endIso,
           familyId: targetFamilyId,
           destination: destination.trim() || undefined,
+          createDays,
         })
         await loadTrips()
         onClose()
@@ -179,6 +182,18 @@ export function TripFormModal({
         onChange={setEndDate}
         placeholder="2026-07-05"
       />
+
+      {!trip && (
+        <View className="flex-row items-center justify-between gap-3">
+          <View className="flex-1">
+            <Text className="text-ink dark:text-dark-ink text-[14px] font-bold">自動建立每天</Text>
+            <Text className="text-muted dark:text-dark-muted text-[12px]">
+              關閉後可在行程頁逐天新增 Day。
+            </Text>
+          </View>
+          <Switch value={createDays} onValueChange={setCreateDays} />
+        </View>
+      )}
 
       {/* 家庭歸屬：僅新增模式 */}
       {!trip && families && families.length > 1 && (

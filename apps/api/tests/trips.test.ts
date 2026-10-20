@@ -45,6 +45,35 @@ describe('trips', () => {
     expect(reversed.status).toBe(400)
   })
 
+  it('新旅程可一次建立日期範圍內的空白 Days', async () => {
+    const created = await request(app).post('/api/trips').set(auth(member.accessToken)).send({
+      title: '手動規劃旅程',
+      startDate: '2026-08-01',
+      endDate: '2026-08-03',
+      familyId,
+      createDays: true,
+    })
+    expect(created.status).toBe(201)
+
+    const detail = await request(app)
+      .get(`/api/trips/${created.body.data.id}`)
+      .set(auth(member.accessToken))
+    expect(detail.body.data.tripDays.map((day: { dayNumber: number }) => day.dayNumber)).toEqual([
+      1, 2, 3,
+    ])
+    expect(
+      detail.body.data.tripDays.every(
+        (day: { activities: unknown[] }) => day.activities.length === 0,
+      ),
+    ).toBe(true)
+    const firstDayId = detail.body.data.tripDays[0].id
+    const activity = await request(app)
+      .post(`/api/trips/${created.body.data.id}/days/${firstDayId}/activities`)
+      .set(auth(member.accessToken))
+      .send({ title: '手動新增活動' })
+    expect(activity.status).toBe(201)
+  })
+
   it('list：只回自己所屬家庭的行程', async () => {
     const mine = await request(app).get('/api/trips').set(auth(member.accessToken))
     expect(mine.status).toBe(200)

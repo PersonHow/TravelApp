@@ -75,7 +75,12 @@ export const tripDayController = {
 
   // DELETE /api/trips/:id/days/:dayId
   async removeDay(req: Request, res: Response) {
-    await tripDayService.removeDay(req.params.id, req.params.dayId, req.userId!)
+    await tripDayService.removeDay(
+      req.params.id,
+      req.params.dayId,
+      req.userId!,
+      req.query.confirmActivities === 'true',
+    )
     res.json({ success: true, data: { id: req.params.dayId } })
   },
 

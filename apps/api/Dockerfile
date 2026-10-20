@@ -14,6 +14,11 @@ COPY packages/shared-types ./packages/shared-types
 RUN npm run prisma:generate -w @travel-app/api
 RUN npm run build -w @travel-app/api
 
+# 正式 migration job 使用獨立 target，保留 Prisma CLI；API runtime 不攜帶開發依賴。
+FROM builder AS migration
+WORKDIR /app/apps/api
+CMD ["npx", "prisma", "migrate", "deploy"]
+
 FROM node:22-alpine AS production-dependencies
 
 WORKDIR /app

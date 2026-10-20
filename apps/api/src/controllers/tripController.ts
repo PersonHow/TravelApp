@@ -17,6 +17,7 @@ const createTripSchema = z
     endDate: dateValue('endDate'),
     familyId: trimmedString('familyId', 100),
     destination: optionalText('destination', 200),
+    createDays: z.boolean().optional(),
   })
   .strict('包含不支援的欄位')
   .refine((value) => value.endDate >= value.startDate, {

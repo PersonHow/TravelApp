@@ -19,7 +19,10 @@ function useAuthRedirect() {
   useEffect(() => {
     if (!hasHydrated) return
     const inAuthGroup = segments[0] === '(auth)'
-    if (!accessToken && !inAuthGroup) {
+    const isPublicPage = ['privacy', 'terms', 'contact', 'data-deletion'].includes(
+      segments[0] ?? '',
+    )
+    if (!accessToken && !inAuthGroup && !isPublicPage) {
       router.replace('/(auth)/login')
     } else if (accessToken && inAuthGroup) {
       router.replace('/trips')

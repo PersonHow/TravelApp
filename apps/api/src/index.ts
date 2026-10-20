@@ -1,7 +1,9 @@
 import './config/loadEnv'
+import { validateProductionEnv } from './config/validateProductionEnv'
 import { createApp } from './app'
 
 // 後端進入點：啟動 HTTP 伺服器
+validateProductionEnv()
 const PORT = Number(process.env.PORT) || 3000
 const app = createApp()
 
