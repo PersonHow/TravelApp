@@ -12,6 +12,12 @@ Travel App 是 npm workspaces 管理的模組化單體：
 
 後端設定載入順序固定為：執行環境注入值 → monorepo 根目錄 `.env` → `apps/api/.env`。正式容器只依賴執行環境注入；本機共用的第三方金鑰集中放根目錄，API 子目錄檔案僅用來補足缺少的值。
 
+## 產品交付方向
+
+目前採用 **LINE-first、Web-first、原生上架後置**：先將既有 Expo Web 作為 LIFF App，加入 LINE 帳號綁定、旅程分享及 Messaging API 提醒；iOS／Android 保留共用程式碼，但 App Store／Google Play 上架不是第一個發布門檻。
+
+完整階段、資料模型、安全要求與驗收條件以 [roadmap.md](./roadmap.md) 為準。
+
 ## 權限矩陣
 
 | 能力 | OWNER | ADMIN | MEMBER |
@@ -34,4 +40,4 @@ Travel App 是 npm workspaces 管理的模組化單體：
 
 ## 尚未啟用
 
-Socket.io、Firebase Realtime Database 與 Expo Notifications 仍是 roadmap，不屬於目前執行中的架構。正式加入前應先定義事件來源、衝突處理及 PostgreSQL 作為最終資料來源的規則。
+LIFF、LINE Login 與 Messaging API 是下一階段目標，尚未進入目前執行中的架構。Socket.io、Firebase Realtime Database 與 Expo Notifications 改為後置候選方案；早期通知優先由 LINE Messaging API 承擔。任何即時資料層正式加入前，仍須先定義事件來源、衝突處理及 PostgreSQL 作為最終資料來源的規則。

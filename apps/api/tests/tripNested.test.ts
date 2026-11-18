@@ -81,6 +81,26 @@ describe('trip nested resources', () => {
         .send({ theme: '沒日期' })
       expect(res.status).toBe(400)
     })
+
+    it('新增或修改 Day 時拒絕超出旅程日期與天數', async () => {
+      const outsideDate = await request(app)
+        .post(`/api/trips/${tripId}/days`)
+        .set(auth(member.accessToken))
+        .send({ date: '2026-07-06', dayNumber: 4 })
+      expect(outsideDate.status).toBe(400)
+
+      const outsideNumber = await request(app)
+        .post(`/api/trips/${tripId}/days`)
+        .set(auth(member.accessToken))
+        .send({ date: '2026-07-04', dayNumber: 6 })
+      expect(outsideNumber.status).toBe(400)
+
+      const invalidUpdate = await request(app)
+        .put(`/api/trips/${tripId}/days/${dayId}`)
+        .set(auth(member.accessToken))
+        .send({ date: '2026-06-30' })
+      expect(invalidUpdate.status).toBe(400)
+    })
   })
 
   describe('每日活動（activities）', () => {
@@ -163,8 +183,14 @@ describe('trip nested resources', () => {
         .set(auth(member.accessToken))
         .send({ title: '臨時活動' })
 
-      const del = await request(app)
+      const blocked = await request(app)
         .delete(`/api/trips/${tripId}/days/${day.body.data.id}`)
+        .set(auth(member.accessToken))
+      expect(blocked.status).toBe(409)
+      expect(blocked.body.error.code).toBe('DAY_NOT_EMPTY')
+
+      const del = await request(app)
+        .delete(`/api/trips/${tripId}/days/${day.body.data.id}?confirmActivities=true`)
         .set(auth(member.accessToken))
       expect(del.status).toBe(200)
 

@@ -59,8 +59,11 @@ export const tripService = {
     })
   },
 
-  removeDay(tripId: string, dayId: string) {
-    return apiFetch<{ id: string }>(`/api/trips/${tripId}/days/${dayId}`, { method: 'DELETE' })
+  removeDay(tripId: string, dayId: string, confirmActivities = false) {
+    const query = confirmActivities ? '?confirmActivities=true' : ''
+    return apiFetch<{ id: string }>(`/api/trips/${tripId}/days/${dayId}${query}`, {
+      method: 'DELETE',
+    })
   },
 
   // ─── 每日活動 ───

@@ -68,11 +68,27 @@ export const tripService = {
       endDate: Date
       familyId: string
       destination?: string
+      createDays?: boolean
     },
     userId: string,
   ) {
     await familyService.assertRole(userId, data.familyId, ['OWNER', 'ADMIN'])
-    return prisma.trip.create({ data })
+    const { createDays, ...tripData } = data
+    if (!createDays) return prisma.trip.create({ data: tripData })
+
+    const dayCount = Math.floor((data.endDate.getTime() - data.startDate.getTime()) / 86400000) + 1
+    if (dayCount > 366) throw AppError.badRequest('自動建立行程日最多支援 366 天')
+    return prisma.trip.create({
+      data: {
+        ...tripData,
+        tripDays: {
+          create: Array.from({ length: dayCount }, (_, index) => ({
+            dayNumber: index + 1,
+            date: new Date(data.startDate.getTime() + index * 86400000),
+          })),
+        },
+      },
+    })
   },
 
   // 更新行程（只更新有傳入的欄位）——僅限 OWNER / ADMIN
@@ -84,7 +100,7 @@ export const tripService = {
     await tripService.assertRole(id, userId, ['OWNER', 'ADMIN'])
     const current = await prisma.trip.findUnique({
       where: { id },
-      include: { tripDays: { select: { id: true, dayNumber: true } } },
+      include: { tripDays: { select: { id: true, dayNumber: true, date: true } } },
     })
     if (!current) throw AppError.notFound('找不到此行程')
 
@@ -100,6 +116,12 @@ export const tripService = {
         'TRIP_DAYS_OUT_OF_RANGE',
         `行程目前有第 ${outsideRange.dayNumber} 天，請先移除超出新日期範圍的行程日`,
       )
+    }
+    if (
+      !data.startDate &&
+      current.tripDays.some((day) => day.date < startDate || day.date > endDate)
+    ) {
+      throw new AppError(409, 'TRIP_DAYS_OUT_OF_RANGE', '請先調整超出新日期範圍的行程日')
     }
 
     return prisma.$transaction(async (tx) => {

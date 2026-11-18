@@ -1,0 +1,31 @@
+substitutions:
+  _REGION: asia-east1
+  _REPOSITORY: travel-app
+
+steps:
+  - name: node:22-alpine
+    id: build-web
+    entrypoint: sh
+    args:
+      - -c
+      - npm ci -w @travel-app/mobile --include-workspace-root && npm run build:web --workspace @travel-app/mobile
+    env:
+      - EXPO_PUBLIC_API_URL=${_API_URL}
+      - EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=${_WEB_KEY}
+      - EXPO_PUBLIC_OPERATOR_NAME=${_OPERATOR_NAME}
+      - EXPO_PUBLIC_SUPPORT_EMAIL=${_SUPPORT_EMAIL}
+  - name: gcr.io/cloud-builders/docker
+    id: package-web
+    args:
+      - build
+      - -f
+      - apps/mobile/Dockerfile.web
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/web:$BUILD_ID
+      - apps/mobile
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/web:$BUILD_ID
+
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -27,6 +27,19 @@ async function assertActivityInTrip(activityId: string, tripId: string) {
   }
 }
 
+function assertDayWithinTrip(
+  day: { date: Date; dayNumber: number },
+  trip: { startDate: Date; endDate: Date },
+) {
+  const dayCount = Math.floor((trip.endDate.getTime() - trip.startDate.getTime()) / 86400000) + 1
+  if (day.date < trip.startDate || day.date > trip.endDate) {
+    throw AppError.badRequest('行程日日期必須在旅程開始與結束日期內')
+  }
+  if (day.dayNumber > dayCount) {
+    throw AppError.badRequest(`Day 編號必須在 1～${dayCount} 之間`)
+  }
+}
+
 export const tripDayService = {
   // 新增行程日（同一行程內 dayNumber 不可重複）
   async createDay(
@@ -35,6 +48,11 @@ export const tripDayService = {
     userId: string,
   ) {
     await tripService.assertAccess(tripId, userId)
+    const trip = await prisma.trip.findUniqueOrThrow({
+      where: { id: tripId },
+      select: { startDate: true, endDate: true },
+    })
+    assertDayWithinTrip(data, trip)
     try {
       return await prisma.tripDay.create({
         data: { tripId, ...data },
@@ -58,6 +76,17 @@ export const tripDayService = {
   ) {
     await tripService.assertAccess(tripId, userId)
     await assertDayInTrip(dayId, tripId)
+    const [trip, current] = await Promise.all([
+      prisma.trip.findUniqueOrThrow({
+        where: { id: tripId },
+        select: { startDate: true, endDate: true },
+      }),
+      prisma.tripDay.findUniqueOrThrow({ where: { id: dayId } }),
+    ])
+    assertDayWithinTrip(
+      { date: data.date ?? current.date, dayNumber: data.dayNumber ?? current.dayNumber },
+      trip,
+    )
     try {
       return await prisma.tripDay.update({
         where: { id: dayId },
@@ -73,9 +102,15 @@ export const tripDayService = {
   },
 
   // 刪除行程日（其下活動由 schema 的 onDelete: Cascade 一併刪除）
-  async removeDay(tripId: string, dayId: string, userId: string) {
+  async removeDay(tripId: string, dayId: string, userId: string, confirmActivities = false) {
     await tripService.assertAccess(tripId, userId)
     await assertDayInTrip(dayId, tripId)
+    if (!confirmActivities) {
+      const activityCount = await prisma.dayActivity.count({ where: { tripDayId: dayId } })
+      if (activityCount > 0) {
+        throw new AppError(409, 'DAY_NOT_EMPTY', '這一天含有活動，請確認後再刪除')
+      }
+    }
     return prisma.tripDay.delete({ where: { id: dayId } })
   },
 

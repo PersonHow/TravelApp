@@ -31,11 +31,13 @@ const CAT_EMOJI: Record<ActivityType, string> = {
 }
 
 type Filter = 'all' | ActivityType
+// 景點牆不含交通,所以只取 spot/food/shop;文字一律取自 activityCategory 的單一來源
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: '全部' },
-  { key: 'spot', label: '景點' },
-  { key: 'food', label: '美食' },
-  { key: 'shop', label: '購物' },
+  ...(['spot', 'food', 'shop'] as ActivityType[]).map((key) => ({
+    key,
+    label: categoryStyle(key).label,
+  })),
 ]
 
 // 把活動 + 它在哪一天攤平成單筆,給景點牆用
