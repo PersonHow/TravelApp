@@ -286,13 +286,14 @@ POST   /api/trips/:id/attractions    # 加入景點
 # 列表不另設 GET：GET /api/trips/:id 已含 tripDays(activities)/hotels/flights
 POST   /api/trips/:id/days                      # 新增一天（dayNumber 重複回 409 CONFLICT）
 PUT    /api/trips/:id/days/:dayId               # 更新一天
-DELETE /api/trips/:id/days/:dayId               # 刪除一天（活動 cascade 刪除）
+DELETE /api/trips/:id/days/:dayId               # 刪除一天（該天含活動時回 409 DAY_NOT_EMPTY，需帶 ?confirmActivities=true 才刪）
 POST   /api/trips/:id/days/:dayId/activities    # 新增活動
 PUT    /api/trips/:id/activities/:activityId    # 更新活動（傳 tripDayId 可換天）
 DELETE /api/trips/:id/activities/:activityId    # 刪除活動
 POST   /api/trips/:id/hotels                    # 新增飯店
 PUT    /api/trips/:id/hotels/:hotelId           # 更新飯店
 DELETE /api/trips/:id/hotels/:hotelId           # 刪除飯店
+GET    /api/trips/:id/hotels/:hotelId/transit-route  # 出發地→飯店的大眾運輸路線（Google Routes；?origin= 必填，無金鑰回 503）
 POST   /api/trips/:id/flights                   # 新增航班（含 aircraft/accessNote）
 PUT    /api/trips/:id/flights/:flightId        # 更新航班
 DELETE /api/trips/:id/flights/:flightId        # 刪除航班

@@ -18,16 +18,12 @@ import { ApiError } from '@/services/api'
 import { attractionService } from '@/services/attractionService'
 import { tripService } from '@/services/tripService'
 import { useTripStore } from '@/store/useTripStore'
+import { ACTIVITY_TYPE_OPTIONS } from '@/utils/activityCategory'
 import { combineDateTime, timeToHHmm } from '@/utils/format'
 import { googleMapsUrl } from '@/utils/mapLink'
 import type { ActivityType, AttractionSearchResult, DayActivity, TripDetail } from '@/types/api'
 
-const TYPE_OPTIONS: { value: ActivityType; label: string }[] = [
-  { value: 'spot', label: '景點' },
-  { value: 'food', label: '餐飲' },
-  { value: 'shop', label: '購物' },
-  { value: 'move', label: '交通' },
-]
+const TYPE_OPTIONS = ACTIVITY_TYPE_OPTIONS
 
 interface ActivityFormModalProps {
   visible: boolean

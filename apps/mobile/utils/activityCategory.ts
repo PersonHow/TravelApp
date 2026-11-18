@@ -17,6 +17,11 @@ export function categoryStyle(type: ActivityType | null | undefined): CategorySt
   return STYLES[type ?? 'move'] ?? STYLES.move
 }
 
+// 類別選項(順序固定)。表單與篩選列共用,避免各自硬編碼出不同文字
+export const ACTIVITY_TYPE_OPTIONS: { value: ActivityType; label: string }[] = (
+  Object.keys(STYLES) as ActivityType[]
+).map((value) => ({ value, label: STYLES[value].label }))
+
 // 價錢顯示:0 → 免費、有值 → ¥600、null → 空字串
 export function formatPrice(
   price: number | null | undefined,

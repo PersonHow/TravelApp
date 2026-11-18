@@ -7,6 +7,7 @@ import { ChipSelect, Field, FormSheet } from '@/components/common/FormSheet'
 import { ApiError } from '@/services/api'
 import { aiPlanService } from '@/services/aiPlanService'
 import { useTripStore } from '@/store/useTripStore'
+import { categoryStyle } from '@/utils/activityCategory'
 import { combineDateTime } from '@/utils/format'
 import type { AiPlanDraft, AiPlanPace, ApplyAiPlanDay, TripDetail } from '@/types/api'
 
@@ -15,14 +16,6 @@ const PACE_OPTIONS: { value: AiPlanPace; label: string }[] = [
   { value: 'moderate', label: '適中' },
   { value: 'packed', label: '緊湊' },
 ]
-
-// 活動類別徽章文字（與 kanban 一致的四類）
-const TYPE_LABELS: Record<string, string> = {
-  spot: '景點',
-  food: '用餐',
-  shop: '購物',
-  move: '移動',
-}
 
 // 第 n 天的日期 ISO（給 combineDateTime 組活動時間用）
 function dateOfDay(startIso: string, dayNumber: number): string {
@@ -192,7 +185,7 @@ export function AiPlanModal({ visible, onClose, trip }: AiPlanModalProps) {
                           {a.title}
                         </Text>
                         <Text className="text-muted dark:text-dark-muted text-[11.5px] mt-0.5">
-                          {[a.type ? TYPE_LABELS[a.type] : null, a.place, a.note]
+                          {[a.type ? categoryStyle(a.type).label : null, a.place, a.note]
                             .filter(Boolean)
                             .join('  ·  ')}
                         </Text>
