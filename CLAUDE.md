@@ -627,15 +627,22 @@ gcloud run deploy travel-frontend \
 - ✅ **AI 第一批：旅遊短句**（2026-07-23）：`Trip.destination` 欄位＋`Phrase` 資料表（migration `20260722085320`）；`services/aiService.ts` 統一封裝 Anthropic Messages API（structured output 強制 JSON、預設 `claude-haiku-4-5` 可用 `ANTHROPIC_MODEL` 覆寫、無金鑰回 503、**金鑰填 `mock` 直接回替身資料不打真實 API**）；prompt 存 `src/prompts/generatePhrases.md`（一份檔案＝一位專家）；`GET/POST /api/trips/:id/phrases(/generate)`（生成一次存 DB 全家共用、重生成先清舊）；前端 `TripFormModal` 加目的地欄位、`phrases.tsx` 從佔位頁做成分類短句卡（空狀態「AI 生成」／已生成「重新生成」）；docker-compose 會把 shell 的 `ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL` 傳進容器（**加了 SDK 依賴，重啟要 `--build`**）；後端測試 55 項（新增 8 項：403/404/400 無目的地/503 無金鑰/mock 生成/重生成清舊）
 - ✅ **email 邀請成員＋家庭管理 UI**：後端 `addMemberByEmail`（找不到 email 回 404、重複回 409），`GET/POST /api/families` 的成員帶 user 基本資料；前端「我的」頁 `FamilyManager`（成員列表＋角色徽章＋email 邀請）。多層動態路由的 `router.push` 要用**物件形式**（`{ pathname: '/trip/[id]/flight/[flightId]', params }`），字串模板過不了 typed routes
 
-**待補（依優先序）**
-1. AviationStack 真實金鑰尚未申請（目前 `.env` 填 `mock` 回替身資料；前後端串接與代理契約測試已完成。申請後替換金鑰，再執行 `npm run verify:flight-api --workspace @travel-app/api -- BR198` 做一次現場驗證）
-2. **地圖與景點牆改善**（2026-08-07 使用者回饋；2026-08-10 定案「地圖選點」與「店名搜尋帶入」**兩種都要**，因為要開放手機操作；已規劃未動工）：
-   - ✅ 第一步（地基，2026-08-10 完成）：`DayActivity` 加 `placeId`/`lat`/`lng`（migration `20260810034814`；搜尋帶入時一併存座標、可「移除精確定位」），活動表單加「在 Google 地圖開啟」deep link（`utils/mapLink.ts`，有座標用座標＋place_id、沒座標退回名稱＋地點文字搜尋，**免金鑰零費用**）；景點牆 `attractions.tsx` 改依 DAY 分組（每天一段標題＋便利貼牆）
-   - ✅ 第二步（內嵌地圖，2026-08-10 完成）：`react-native-maps@1.14.0`（Expo Go 可直接跑：iOS Apple 圖層／Android Google 圖層；正式 build 金鑰讀 `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`，已寫進 `app.config.ts`，**金鑰尚未申請**）；`components/map/MapCanvas.native.tsx` + `MapCanvas.tsx`（Metro 平台分流，Web 降級提示，**兩份 props 介面要同步**）；`LocationPickerModal` 地圖選點（點地圖放 pin → 回填座標，手動點的沒有 placeId；與 FormSheet 互斥開啟）；活動表單「地圖選點」按鈕（原生限定）；新增「地圖」tab（`trip/[id]/map.tsx`，第 4 個 tab）：全部帶座標活動的 pin 依 DAY 上色＋圖例，點 pin 標題跳 Google 地圖，Web 降級成清單
-3. ✅ Web 內嵌地圖已完成（2026-08-25）：`MapCanvas.tsx` 改為動態載入 Maps JavaScript API（金鑰讀 `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`，已填入 `apps/mobile/.env`，與後端 Places 同一把；沒金鑰或載入失敗降級提示）；地圖 tab 與「地圖選點」在 Web 都可用了。**待辦**：這把金鑰同時給後端與前端網頁用，前端會公開金鑰，正式上線前應在 GCP 分拆兩把並設 HTTP referrer／IP 限制；原生正式 build（Maps SDK for iOS/Android）尚未實測
-4. Socket.io 即時同步、Firebase 即時共享、推播通知（Expo Notifications）
-5. ✅ 角色細分授權：OWNER／ADMIN 管理家庭成員與旅程基本資料；MEMBER 可協作每日內容
-6. ✅ 正式部署用多階段 `apps/api/Dockerfile` 與 GitHub Actions CI；實際雲端服務與 migration job 仍待設定
+## 目前產品路線（2026-10-14）
+
+專案改採 **LINE-first、Web-first、原生上架後置**。單一事實來源為 [`docs/roadmap.md`](./docs/roadmap.md)。
+
+**待補（依目前優先序）**
+1. 決定正式雲端、網域及營運者聯絡資訊；審閱公開政策草稿。
+2. 在 Google Cloud 建立並限制 Web／後端金鑰，部署 Expo Web、API 與 PostgreSQL 到正式 HTTPS 環境。
+3. 正式環境驗收後，建立 LINE Provider、LINE Login Channel 與 LIFF 測試 App。
+4. 新增 `LineAccount`、後端 LINE Token 驗證、帳號綁定與解除綁定。
+5. 加入安全的 LINE 旅程分享／家庭邀請連結。
+6. 建立 LINE Official Account、Messaging API webhook、Rich Menu 與提醒偏好。
+7. LIFF 穩定後才分階段升級 Expo SDK，進行 EAS Build 與商店上架。
+
+**第 01 階段本機完成（2026-10-14）：** 新旅程可選擇自動建立所有 Days，行程頁可手動新增、編輯、刪除 Day；後端驗證日期與編號範圍，含活動的 Day 需確認後才刪除。API production audit 0 通報；API 90 項、mobile 44 項測試通過。新增四個公開資訊頁草稿、正式 Web build 檢查、API production 設定檢查與 migration image。部署操作見 `docs/deployment-readiness.md`。
+
+Socket.io、Firebase Realtime Database 與 Expo Notifications 暫時後置；早期通知由 LINE Messaging API 承擔。AviationStack、Google Places、Google Routes、Anthropic 與 Web Google Maps 目前皆已配置非 mock 金鑰。
 
 **注意事項**
 - 新增路由頁面後，`.expo/types/router.d.ts`（typed routes）要等 `expo start` 重新生成；型別檢查若報 Href 錯誤先跑一次 dev server
@@ -652,5 +659,7 @@ gcloud run deploy travel-frontend \
 6. 所有程式碼**加上繁體中文注解**
 
 ---
+
+*產品路線更新：2026-10-13 確立 LINE-first／Web-first／原生上架後置路線，完整階段與驗收門檻見 `docs/roadmap.md`。*
 
 *最後更新：2026-09-29 修復 Expo 51／NativeWind 相依與 Jest 轉換設定，前端 42 項測試及 Web export 通過；航空搜尋補齊 AviationStack 代理契約測試與真實金鑰驗證指令，後端 86 項測試通過。2026-08-25 完成 Web 內嵌地圖（Maps JavaScript API 動態載入、地圖 tab＋地圖選點在 Web 開放，金鑰填入 mobile .env）＋首頁 DAY 卡片橫滑改版（含今天亮燈）＋交通住宿桌面 master-detail＋飯店房型/房號/座標欄位（Places 搜尋帶入；後端 78／前端 39）；2026-08-18 完成航班搜尋串接＋記帳功能（AviationStack 正規化＋mock＋快取、FlightFormModal 搜尋帶入；Expense 資料表＋巢狀端點＋記帳 tab；後端 78／前端 34）；2026-08-12 完成品質補強（ESLint＋Prettier＋root 腳本；前端測試遷 jest-expo 並新增元件測試；後端 64／前端 34）；2026-08-10 完成地圖第一＋二步（活動座標欄位＋Google 地圖 deep link＋景點牆 DAY 分組；react-native-maps 內嵌地圖＋地圖選點＋地圖 tab，Web 降級；後端 64／前端 28）；2026-08-07 接通真實 ANTHROPIC_API_KEY（修正 ANTHROPIC_MODEL 空字串 bug、aiService 補錯誤 log）與 Google Places 景點搜尋（金鑰＋zh-TW＋ActivityFormModal 搜尋帶入 UI）；2026-07-24 完成 AI 第二＋三批「AI 規劃行程＋審核專家鏈」（assertRole、兩段式 ai-plan 端點、planTrip/reviewTrip 專家鏈、AiPlanModal 草稿預覽；後端測試 62／前端 24；第四批「即時異動重排」仍待確認事項定案）；2026-07-23 完成 AI 功能第一批「旅遊短句」（Trip.destination＋Phrase model、aiService＋prompts 資料夾、phrases 端點、用語 tab UI、mock 開發流程；後端測試 55／前端 24）；2026-07-16 補上每趟旅程 AI 用量軟上限（暫定台幣 80 元）與 AviationStack 免費額度僅 100 次／月的節流提醒；2026-07-16 於「🤖 AI 功能規劃」追加第四批「即時異動重排」（真正的 function calling / agent 迴圈，新頁面「即時行程」，掛 AviationStack／Places／web search 三個工具，已規劃未動工）；2026-07-15 新增「🤖 AI 功能規劃」章節（Claude API 整合三批：旅遊短句／AI 排行程／審核專家鏈，已規劃未動工）；上一批完成：航班詳細頁＋email 邀請成員（後端測試 47、前端 24）| 如有架構變動請同步更新此文件*

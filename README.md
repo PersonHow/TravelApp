@@ -2,7 +2,7 @@
 
 日本家庭旅遊協調 App — iOS + Android + Web,一份程式碼三平台。
 
-> 現行系統邊界與權限矩陣請看 [docs/architecture.md](./docs/architecture.md)；完整開發紀錄與 Schema 慣例請看 [CLAUDE.md](./CLAUDE.md)。
+> 現行系統邊界與權限矩陣請看 [docs/architecture.md](./docs/architecture.md)；LINE-first 產品方向與階段門檻請看 [docs/roadmap.md](./docs/roadmap.md)；正式部署準備請看 [docs/deployment-readiness.md](./docs/deployment-readiness.md) 與 [GCP 操作稿](./docs/gcp-deployment.md)；完整開發紀錄與 Schema 慣例請看 [CLAUDE.md](./CLAUDE.md)。
 > 這份 README 只專心講「怎麼跑起來」。
 
 ---
@@ -33,7 +33,7 @@ docker-compose up -d
 cd apps/api
 npx prisma migrate dev
 
-# 4. 灌測試資料(東京自由行 demo trip + demo 帳號)
+# 4. 選用：灌本機示範資料（會重建 demo 帳號資料）
 npm run seed --workspace @travel-app/api
 ```
 
@@ -81,7 +81,7 @@ npx expo start --web
 
 ---
 
-## Demo 帳號
+## Demo 帳號（僅本機示範資料）
 
 ```
 email:    demo@travel-app.com
@@ -89,6 +89,7 @@ password: demo1234
 ```
 
 進去就能看到「東京自由行」的完整行程。
+正式 Web 版不提供自動填入 demo 帳密。新帳號可自行建立家庭、旅程與空白 Days。
 
 ---
 
